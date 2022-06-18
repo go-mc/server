@@ -12,14 +12,18 @@ import (
 type Game struct {
 	log *zap.Logger
 
-	Config
-	chunkLoader *world.Loader
+	config Config
 
 	overworld *world.World
 }
 
-func NewGame(log *zap.Logger) *Game {
-	return &Game{log: log}
+func NewGame(log *zap.Logger, config Config) *Game {
+	return &Game{
+		log:    log,
+		config: config,
+
+		overworld: world.New(log.Named("overworld")),
+	}
 }
 
 // AcceptPlayer 在新玩家登入时在单独的goroutine中被调用

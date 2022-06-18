@@ -1,51 +1,93 @@
 package main
 
 import (
-	"flag"
-
-	"go.uber.org/zap"
-
+	"github.com/BurntSushi/toml"
 	"github.com/Tnze/go-mc/chat"
+	"go.uber.org/zap"
+	"runtime/debug"
+	"strings"
+
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/game"
 )
 
-var motd = chat.Message{Text: "A Minecraft Server ", Extra: []chat.Message{{Text: "Powered by go-mc", Color: "yellow"}}}
-var addr = flag.String("Address", "127.0.0.1:25565", "Listening address")
-
 func main() {
-	flag.Parse()
-
 	// 初始化日志库
 	logger := unwrap(zap.NewDevelopment())
 	defer logger.Sync()
 
 	logger.Info("Program start")
+	printBuildInfo(logger)
 	defer logger.Info("Program exit")
 
-	// TODO：从服务器配置文件中提取最大人数、是否开启在线验证等设置项目，而不是在代码中写死
+	// 读取服务器配置文件
+	config, err := readConfig()
+	if err != nil {
+		logger.Error("Read config fail", zap.Error(err))
+		return
+	}
 
 	// 初始化玩家列表和服务器状态信息模块，这两个模块相辅相成，用于服务器Ping&List信息的显示
-	playerList := server.NewPlayerList(20)
-	serverInfo, err := server.NewPingInfo(playerList, "GoMC "+server.ProtocolName, server.ProtocolVersion, motd, nil)
+	playerList := server.NewPlayerList(config.MaxPlayers)
+	serverInfo, err := server.NewPingInfo(playerList,
+		"Go-MC "+server.ProtocolName,
+		server.ProtocolVersion,
+		chat.Text(config.MessageOfTheDay),
+		nil,
+	)
 	if err != nil {
-		logger.Panic("Init server info system fail", zap.Error(err))
+		logger.Error("Init server info system fail", zap.Error(err))
+		return
 	}
 
 	s := server.Server{
 		ListPingHandler: serverInfo,
 		LoginHandler: &server.MojangLoginHandler{
-			OnlineMode:   true,
-			Threshold:    256,
-			LoginChecker: playerList,
+			OnlineMode:   config.OnlineMode,
+			Threshold:    config.NetworkCompressionThreshold,
+			LoginChecker: playerList, // playerList实现了LoginChecker接口，用于限制服务器最大人数
 		},
-		GamePlay: game.NewGame(logger),
+		GamePlay: game.NewGame(logger, config),
 	}
-	logger.Info("Start listening", zap.String("address", *addr))
-	err = s.Listen(*addr)
+	logger.Info("Start listening", zap.String("address", config.ListenAddress))
+	err = s.Listen(config.ListenAddress)
 	if err != nil {
 		logger.Error("Server listening error", zap.Error(err))
 	}
+}
+
+// printBuildInfo 通过runtime/debug包读取二进制程序编译信息，并输出至日志
+func printBuildInfo(logger *zap.Logger) {
+	binaryInfo, _ := debug.ReadBuildInfo()
+	settings := make(map[string]string)
+	for _, v := range binaryInfo.Settings {
+		settings[v.Key] = v.Value
+	}
+	logger.Debug("Build info", zap.Any("settings", settings))
+}
+
+// readConfig 从配置文件中读取服务器设置，当配置文件中出现无法识别的未知设置时报错
+func readConfig() (game.Config, error) {
+	var c game.Config
+	meta, err := toml.DecodeFile("config.toml", &c)
+	if err != nil {
+		return game.Config{}, err
+	}
+	if undecoded := meta.Undecoded(); len(undecoded) > 0 {
+		var err errUnknownConfig
+		for _, key := range undecoded {
+			err = append(err, key.String())
+		}
+		return game.Config{}, err
+	}
+
+	return c, nil
+}
+
+type errUnknownConfig []string
+
+func (e errUnknownConfig) Error() string {
+	return "unknown config keys: [" + strings.Join(e, ", ") + "]"
 }
 
 func unwrap[T any](v T, err error) T {

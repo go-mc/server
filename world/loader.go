@@ -32,6 +32,7 @@ func (l *Loader) unloadUnusedChunks() {
 		if distance(diff) > float64(l.radius) {
 			delete(l.loaded, pos)
 			l.viewer.ViewChunkUnload(pos)
+			l.w.chunksRC[pos]--
 		}
 	}
 }

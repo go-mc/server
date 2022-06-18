@@ -29,13 +29,13 @@ func (c clientInfomation) Handle(p pk.Packet, client *Client) error {
 		return err
 	}
 
-	client.SetLocale(string(Locale))
-	client.SetViewDistance(int(ViewDistance))
-	client.SetChatMode(byte(ChatMode))
-	client.SetChatColors(bool(ChatColors))
-	client.SetDisplayedSkinParts(byte(DisplayedSkinParts))
-	client.SetMainHand(byte(MainHand))
-	client.SetEnableTextFiltering(bool(EnableTextFiltering))
-	client.SetAllowServerListings(bool(AllowServerListings))
+	//client.SetLocale(string(Locale))
+	//client.SetViewDistance(int(ViewDistance))
+	//client.SetChatMode(byte(ChatMode))
+	//client.SetChatColors(bool(ChatColors))
+	//client.SetDisplayedSkinParts(byte(DisplayedSkinParts))
+	//client.SetMainHand(byte(MainHand))
+	//client.SetEnableTextFiltering(bool(EnableTextFiltering))
+	//client.SetAllowServerListings(bool(AllowServerListings))
 	return nil
 }
