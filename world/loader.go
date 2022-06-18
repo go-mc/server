@@ -5,16 +5,25 @@ import (
 	"sort"
 )
 
-// Loader 用于实现世界区块的加载，每个 Loader 包含 位置 pos 、半径 r 和一个 Viewer，
-// 位置和半径指示的范围内的区块将被加载，并且内部的 Viewer 会自动添加到范围内的每个区块上。
+// Loader 用于实现世界区块的加载，每个 Loader 包含 位置 pos 和一个半径 r
+// 位置和半径指示的范围内的区块将被加载。
 type Loader struct {
 	pos    [2]int32
 	radius int32
 	w      *World
-	viewer Viewer
 
 	loaded    map[[2]int32]struct{}
 	loadQueue [][2]int32
+}
+
+func NewLoader(w *World, pos [2]int32, r int32) *Loader {
+	return &Loader{
+		pos:       pos,
+		radius:    r,
+		w:         w,
+		loaded:    map[[2]int32]struct{}{},
+		loadQueue: nil,
+	}
 }
 
 func (l *Loader) calcLoadingQueue() {
@@ -31,7 +40,6 @@ func (l *Loader) unloadUnusedChunks() {
 		diff := [2]int32{pos[0] - l.pos[0], pos[1] - l.pos[1]}
 		if distance(diff) > float64(l.radius) {
 			delete(l.loaded, pos)
-			l.viewer.ViewChunkUnload(pos)
 			l.w.chunksRC[pos]--
 		}
 	}

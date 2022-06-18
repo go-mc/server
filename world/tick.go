@@ -13,6 +13,16 @@ func (w *World) tickLoop() {
 }
 
 func (w *World) tick() {
+	for loader, viewer := range w.loaders {
+		for _, pos := range loader.loadQueue {
+			if _, ok := w.chunks[pos]; !ok {
+				w.loadChunk(pos)
+			}
+			w.chunksRC[pos]++
+			w.chunks[pos].viewers = append(w.chunks[pos].viewers, viewer)
+		}
+		loader.loadQueue = loader.loadQueue[:0]
+	}
 	for pos, count := range w.chunksRC {
 		if count == 0 {
 			w.unloadChunk(pos)

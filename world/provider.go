@@ -15,6 +15,10 @@ type Provider struct {
 	dir string
 }
 
+func NewProvider(dir string) Provider {
+	return Provider{dir: dir}
+}
+
 func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, err error) {
 	r, err := p.getRegion(region.At(int(pos[0]), int(pos[1])))
 	if err != nil {

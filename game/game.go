@@ -7,6 +7,7 @@ import (
 	"github.com/go-mc/server/world"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"path/filepath"
 )
 
 type Game struct {
@@ -18,11 +19,12 @@ type Game struct {
 }
 
 func NewGame(log *zap.Logger, config Config) *Game {
-	return &Game{
-		log:    log,
-		config: config,
+	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"))
 
-		overworld: world.New(log.Named("overworld")),
+	return &Game{
+		log:       log,
+		config:    config,
+		overworld: world.New(log.Named("overworld"), overworld),
 	}
 }
 
