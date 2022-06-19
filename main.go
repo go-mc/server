@@ -41,11 +41,13 @@ func main() {
 	}
 
 	s := server.Server{
+		Logger:          zap.NewStdLog(logger),
 		ListPingHandler: serverInfo,
 		LoginHandler: &server.MojangLoginHandler{
-			OnlineMode:   config.OnlineMode,
-			Threshold:    config.NetworkCompressionThreshold,
-			LoginChecker: playerList, // playerList实现了LoginChecker接口，用于限制服务器最大人数
+			OnlineMode:           config.OnlineMode,
+			EnforceSecureProfile: config.EnforceSecureProfile,
+			Threshold:            config.NetworkCompressionThreshold,
+			LoginChecker:         playerList, // playerList实现了LoginChecker接口，用于限制服务器最大人数
 		},
 		GamePlay: game.NewGame(logger, config),
 	}

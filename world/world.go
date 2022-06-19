@@ -3,7 +3,6 @@ package world
 import (
 	"errors"
 	"github.com/Tnze/go-mc/level"
-	"github.com/Tnze/go-mc/level/block"
 	"go.uber.org/zap"
 )
 
@@ -45,12 +44,12 @@ func (w *World) loadChunk(pos [2]int32) {
 	c, err := w.provider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
-		// TODO: 目前还没有区块生成器，这里仅生成了一个空区块、放置了一些基岩，然后将区块标记为已生成
+		// TODO: 目前还没有区块生成器，这里仅生成了一个空区块,然后将区块标记为已生成
 		c = level.EmptyChunk(24)
-		bedrock := block.ToStateID[block.Bedrock{}]
-		for i := 0; i < 16*16; i++ {
-			c.Sections[0].SetBlock(i, bedrock)
-		}
+		//bedrock := block.ToStateID[block.Bedrock{}]
+		//for i := 0; i < 16*16; i++ {
+		//	c.Sections[0].SetBlock(i, bedrock)
+		//}
 		c.Status = level.StatusFull
 	}
 	logger.Debug("Load chunk")

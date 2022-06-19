@@ -1,6 +1,7 @@
 package game
 
 import (
+	"crypto/rsa"
 	"github.com/Tnze/go-mc/net"
 	"github.com/go-mc/server/client"
 	"github.com/go-mc/server/player"
@@ -29,7 +30,15 @@ func NewGame(log *zap.Logger, config Config) *Game {
 }
 
 // AcceptPlayer 在新玩家登入时在单独的goroutine中被调用
-func (g *Game) AcceptPlayer(name string, id uuid.UUID, protocol int32, conn *net.Conn) {
+func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.PublicKey, protocol int32, conn *net.Conn) {
+	logger := g.log.With(
+		zap.String("name", name),
+		zap.String("uuid", id.String()),
+		zap.Int32("protocol", protocol),
+	)
+	logger.Info("Player join")
+	defer logger.Info("Player left")
+
 	c := client.New(g.log, conn)
 	p := player.New(name, id)
 	c.JoinWorld(p, g.overworld)

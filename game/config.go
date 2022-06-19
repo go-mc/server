@@ -7,4 +7,5 @@ type Config struct {
 	NetworkCompressionThreshold int    `toml:"network-compression-threshold"`
 	OnlineMode                  bool   `toml:"online-mode"`
 	LevelName                   string `toml:"level-name"`
+	EnforceSecureProfile        bool   `toml:"enforce-secure-profile"`
 }
