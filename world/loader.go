@@ -16,14 +16,22 @@ type Loader struct {
 	loadQueue [][2]int32
 }
 
-func NewLoader(w *World, pos [2]int32, r int32) *Loader {
-	return &Loader{
+func NewLoader(w *World, pos [2]int32, r int32) (l *Loader) {
+	l = &Loader{
 		pos:       pos,
 		radius:    r,
 		w:         w,
 		loaded:    map[[2]int32]struct{}{},
 		loadQueue: nil,
 	}
+	l.calcLoadingQueue()
+	return
+}
+
+func (l *Loader) Move(pos [2]int32) {
+	l.pos = pos
+	l.calcLoadingQueue()
+	l.unloadUnusedChunks()
 }
 
 func (l *Loader) calcLoadingQueue() {

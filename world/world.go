@@ -4,14 +4,16 @@ import (
 	"errors"
 	"github.com/Tnze/go-mc/level"
 	"go.uber.org/zap"
+	"sync"
 )
 
 type World struct {
 	log *zap.Logger
 
-	chunks   map[[2]int32]*LoadedChunk
-	chunksRC map[[2]int32]int
-	loaders  map[*Loader]Viewer
+	chunks    map[[2]int32]*LoadedChunk
+	chunksRC  map[[2]int32]int
+	loaders   map[*Loader]Viewer
+	loadersMu sync.Mutex
 
 	provider Provider
 }
@@ -25,7 +27,6 @@ func New(logger *zap.Logger, provider Provider) (w *World) {
 		provider: provider,
 	}
 	spawnLoader := NewLoader(w, [2]int32{0, 0}, 20)
-	spawnLoader.calcLoadingQueue()
 	w.loaders[spawnLoader] = nil
 	go w.tickLoop()
 	return
@@ -37,6 +38,12 @@ func (w *World) Name() string {
 
 func (w *World) HashedSeed() [8]byte {
 	return [8]byte{}
+}
+
+func (w *World) AddLoader(l *Loader, viewer Viewer) {
+	w.loadersMu.Lock()
+	defer w.loadersMu.Unlock()
+	w.loaders[l] = viewer
 }
 
 func (w *World) loadChunk(pos [2]int32) {

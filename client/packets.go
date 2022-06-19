@@ -45,7 +45,7 @@ func (c *Client) SendLogin(p Player) error {
 		pk.Array([]pk.String{
 			pk.String(w.Name()),
 		}),
-		// pk.NBT(RegistryCodec)
+		pk.NBT(w.DimensionCodec()),
 		pk.Identifier("minecraft:overworld"),
 		pk.String(w.Name()),
 		pk.Long(binary.BigEndian.Uint64(hashedSeed[:8])),
@@ -60,9 +60,9 @@ func (c *Client) SendLogin(p Player) error {
 	)
 }
 
-func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos) error {
+func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk) error {
 	return c.sendPacket(
 		packetid.ClientboundLevelChunkWithLight,
-		pos,
+		pos, chunk,
 	)
 }

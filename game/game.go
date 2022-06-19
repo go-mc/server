@@ -16,16 +16,18 @@ type Game struct {
 
 	config Config
 
-	overworld *world.World
+	playerProvider player.Provider
+	overworld      *world.World
 }
 
 func NewGame(log *zap.Logger, config Config) *Game {
 	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"))
 
 	return &Game{
-		log:       log,
-		config:    config,
-		overworld: world.New(log.Named("overworld"), overworld),
+		log:            log,
+		config:         config,
+		playerProvider: player.NewProvider(filepath.Join(".", config.LevelName, "playerdata")),
+		overworld:      world.New(log.Named("overworld"), overworld),
 	}
 }
 
@@ -40,6 +42,15 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 	defer logger.Info("Player left")
 
 	c := client.New(g.log, conn)
-	p := player.New(name, id)
-	c.JoinWorld(p, g.overworld)
+	p, err := g.playerProvider.GetPlayer(name, id)
+	if err != nil {
+		logger.Error("Read player data error", zap.Error(err))
+		return
+	}
+
+	if err := c.Spawn(p, g.overworld); err != nil {
+		logger.Error("Spawn player error", zap.Error(err))
+		return
+	}
+	c.Start()
 }

@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/Tnze/go-mc/data/packetid"
+	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/go-mc/server/world"
@@ -16,6 +17,15 @@ type Client struct {
 	chunkLoader *world.Loader
 }
 
+func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
+	c.SendLevelChunkWithLight(pos, chunk)
+}
+
+func (c *Client) ViewChunkUnload(pos level.ChunkPos) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type packetHandler interface {
 	Handle(p pk.Packet, c *Client) error
 }
@@ -28,9 +38,36 @@ func New(log *zap.Logger, conn *net.Conn) *Client {
 	}
 }
 
-func (c *Client) JoinWorld(p Player, w *world.World) {
+func (c *Client) Spawn(p Player, w *world.World) error {
 	c.player = p
-	//c.chunkLoader
+	p.SetWorld(w)
+	c.chunkLoader = world.NewLoader(w, p.ChunkPos(), p.ChunkRadius())
+	w.AddLoader(c.chunkLoader, c)
+	err := c.SendLogin(p)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) Start() {
+	var packet pk.Packet
+	for {
+		err := c.conn.ReadPacket(&packet)
+		if err != nil {
+			c.log.Debug("Receive packet fail", zap.Error(err))
+			return
+		}
+		if packet.ID < 0 || packet.ID >= int32(len(c.handlers)) {
+			c.log.Debug("Invalid packet id", zap.Int32("id", packet.ID), zap.Int("len", len(packet.Data)))
+			return
+		}
+		err = c.handlers[packet.ID].Handle(packet, c)
+		if err != nil {
+			c.log.Error("Handle packet error", zap.Int32("id", packet.ID), zap.Error(err))
+			return
+		}
+	}
 }
 
 var defaultHandlers = []packetHandler{

@@ -19,15 +19,15 @@ func NewProvider(dir string) Provider {
 	return Provider{dir: dir}
 }
 
-func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, err error) {
+func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
 	r, err := p.getRegion(region.At(int(pos[0]), int(pos[1])))
 	if err != nil {
 		return nil, fmt.Errorf("open region fail: %w", err)
 	}
 	defer func(r *region.Region) {
 		err2 := r.Close()
-		if err == nil && err2 != nil {
-			err = fmt.Errorf("close region fail: %w", err2)
+		if errRet == nil && err2 != nil {
+			errRet = fmt.Errorf("close region fail: %w", err2)
 		}
 	}(r)
 

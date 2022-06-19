@@ -14,6 +14,7 @@ import (
 func main() {
 	// 初始化日志库
 	logger := unwrap(zap.NewDevelopment())
+	//logger := unwrap(zap.NewProduction())
 	defer logger.Sync()
 
 	logger.Info("Program start")
