@@ -6,6 +6,7 @@ import (
 )
 
 type Player struct {
+	world.Loader
 	name     string
 	uuid     uuid.UUID
 	entityID int32

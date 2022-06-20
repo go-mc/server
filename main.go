@@ -30,7 +30,7 @@ func main() {
 
 	// 初始化玩家列表和服务器状态信息模块，这两个模块相辅相成，用于服务器Ping&List信息的显示
 	playerList := server.NewPlayerList(config.MaxPlayers)
-	serverInfo, err := server.NewPingInfo(playerList,
+	serverInfo := server.NewPingInfo(
 		"Go-MC "+server.ProtocolName,
 		server.ProtocolVersion,
 		chat.Text(config.MessageOfTheDay),
@@ -42,15 +42,18 @@ func main() {
 	}
 
 	s := server.Server{
-		Logger:          zap.NewStdLog(logger),
-		ListPingHandler: serverInfo,
+		Logger: zap.NewStdLog(logger),
+		ListPingHandler: struct {
+			*server.PlayerList
+			*server.PingInfo
+		}{playerList, serverInfo},
 		LoginHandler: &server.MojangLoginHandler{
 			OnlineMode:           config.OnlineMode,
 			EnforceSecureProfile: config.EnforceSecureProfile,
 			Threshold:            config.NetworkCompressionThreshold,
 			LoginChecker:         playerList, // playerList实现了LoginChecker接口，用于限制服务器最大人数
 		},
-		GamePlay: game.NewGame(logger, config),
+		GamePlay: game.NewGame(logger, config, playerList),
 	}
 	logger.Info("Start listening", zap.String("address", config.ListenAddress))
 	err = s.Listen(config.ListenAddress)

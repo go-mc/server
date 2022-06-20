@@ -10,10 +10,9 @@ import (
 type World struct {
 	log *zap.Logger
 
-	chunks    map[[2]int32]*LoadedChunk
-	chunksRC  map[[2]int32]int
-	loaders   map[*Loader]Viewer
-	loadersMu sync.Mutex
+	chunks   map[[2]int32]*LoadedChunk
+	chunksRC map[[2]int32]int
+	loaders  map[*Loader]Viewer
 
 	provider Provider
 }
@@ -27,31 +26,24 @@ func New(logger *zap.Logger, provider Provider) (w *World) {
 		provider: provider,
 	}
 	spawnLoader := NewLoader(w, [2]int32{0, 0}, 20)
-	w.loaders[spawnLoader] = nil
+	w.loaders[&spawnLoader] = nil
 	go w.tickLoop()
 	return
 }
 
 func (w *World) Name() string {
-	return "world"
+	return "minecraft:overworld"
 }
 
 func (w *World) HashedSeed() [8]byte {
 	return [8]byte{}
 }
-
-func (w *World) AddLoader(l *Loader, viewer Viewer) {
-	w.loadersMu.Lock()
-	defer w.loadersMu.Unlock()
-	w.loaders[l] = viewer
-}
-
 func (w *World) loadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
 	c, err := w.provider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
-		// TODO: 目前还没有区块生成器，这里仅生成了一个空区块,然后将区块标记为已生成
+		// TODO: 目前还没有区块生成器，生成一个空区块,然后将区块标记为已生成
 		c = level.EmptyChunk(24)
 		//bedrock := block.ToStateID[block.Bedrock{}]
 		//for i := 0; i < 16*16; i++ {
@@ -83,6 +75,7 @@ func (w *World) unloadChunk(pos [2]int32) {
 }
 
 type LoadedChunk struct {
+	sync.Mutex
 	viewers []Viewer
 	*level.Chunk
 }

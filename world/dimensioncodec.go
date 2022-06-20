@@ -20,8 +20,5 @@ func init() {
 }
 
 func (w *World) DimensionCodec() nbt.RawMessage {
-	return nbt.RawMessage{
-		Type: 0,
-		Data: nil,
-	}
+	return DimensionCodec
 }

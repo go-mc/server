@@ -3,6 +3,7 @@ package game
 import (
 	"crypto/rsa"
 	"github.com/Tnze/go-mc/net"
+	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/client"
 	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
@@ -18,9 +19,12 @@ type Game struct {
 
 	playerProvider player.Provider
 	overworld      *world.World
+
+	keepAlive  server.KeepAlive
+	playerList *server.PlayerList // playerList for updating Ping&List info
 }
 
-func NewGame(log *zap.Logger, config Config) *Game {
+func NewGame(log *zap.Logger, config Config, playerList *server.PlayerList) *Game {
 	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"))
 
 	return &Game{
@@ -47,6 +51,10 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 		logger.Error("Read player data error", zap.Error(err))
 		return
 	}
+	g.keepAlive.ClientJoin(c)
+	defer g.keepAlive.ClientLeft(c)
+	g.playerList.ClientJoin(c, server.PlayerSample{Name: name, ID: id})
+	defer g.playerList.ClientLeft(c)
 
 	if err := c.Spawn(p, g.overworld); err != nil {
 		logger.Error("Spawn player error", zap.Error(err))

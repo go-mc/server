@@ -5,16 +5,15 @@ import (
 	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
+	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
 )
 
 type Client struct {
-	log         *zap.Logger
-	conn        *net.Conn
-	handlers    []packetHandler
-	player      Player
-	chunkLoader *world.Loader
+	log      *zap.Logger
+	conn     *net.Conn
+	handlers []packetHandler
 }
 
 func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
@@ -26,6 +25,11 @@ func (c *Client) ViewChunkUnload(pos level.ChunkPos) {
 	panic("implement me")
 }
 
+//type Player interface {
+//	SetWorld(w *world.World)
+//	GetLoader() *world.Loader
+//}
+type Player = player.Player
 type packetHandler interface {
 	Handle(p pk.Packet, c *Client) error
 }
@@ -38,11 +42,9 @@ func New(log *zap.Logger, conn *net.Conn) *Client {
 	}
 }
 
-func (c *Client) Spawn(p Player, w *world.World) error {
-	c.player = p
+func (c *Client) Spawn(p *Player, w *world.World) error {
 	p.SetWorld(w)
-	c.chunkLoader = world.NewLoader(w, p.ChunkPos(), p.ChunkRadius())
-	w.AddLoader(c.chunkLoader, c)
+	//w.AddLoader(p.GetLoader(), c)
 	err := c.SendLogin(p)
 	if err != nil {
 		return err
@@ -62,10 +64,12 @@ func (c *Client) Start() {
 			c.log.Debug("Invalid packet id", zap.Int32("id", packet.ID), zap.Int("len", len(packet.Data)))
 			return
 		}
-		err = c.handlers[packet.ID].Handle(packet, c)
-		if err != nil {
-			c.log.Error("Handle packet error", zap.Int32("id", packet.ID), zap.Error(err))
-			return
+		if handler := c.handlers[packet.ID]; handler != nil {
+			err = handler.Handle(packet, c)
+			if err != nil {
+				c.log.Error("Handle packet error", zap.Int32("id", packet.ID), zap.Error(err))
+				return
+			}
 		}
 	}
 }

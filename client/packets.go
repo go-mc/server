@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
@@ -33,7 +34,15 @@ func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) error {
 	})
 }
 
-func (c *Client) SendLogin(p Player) error {
+func (c *Client) SendKeepAlive(id int64) {
+	c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
+}
+
+func (c *Client) SendDisconnect(reason chat.Message) {
+	c.sendPacket(packetid.ClientboundDisconnect, reason)
+}
+
+func (c *Client) SendLogin(p *Player) error {
 	w := p.World()
 	hashedSeed := w.HashedSeed()
 	return c.sendPacket(

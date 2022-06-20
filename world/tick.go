@@ -13,7 +13,6 @@ func (w *World) tickLoop() {
 }
 
 func (w *World) tick() {
-	w.loadersMu.Lock()
 	for loader, viewer := range w.loaders {
 		for _, pos := range loader.loadQueue {
 			if _, ok := w.chunks[pos]; !ok {
@@ -21,10 +20,12 @@ func (w *World) tick() {
 			}
 			w.chunksRC[pos]++
 			lc := w.chunks[pos]
+			lc.Lock()
 			lc.viewers = append(w.chunks[pos].viewers, viewer)
 			if viewer != nil {
 				viewer.ViewChunkLoad(pos, lc.Chunk)
 			}
+			lc.Unlock()
 		}
 		loader.loadQueue = loader.loadQueue[:0]
 	}
@@ -34,5 +35,4 @@ func (w *World) tick() {
 			delete(w.chunksRC, pos)
 		}
 	}
-	w.loadersMu.Unlock()
 }

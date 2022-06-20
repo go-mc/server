@@ -16,8 +16,8 @@ type Loader struct {
 	loadQueue [][2]int32
 }
 
-func NewLoader(w *World, pos [2]int32, r int32) (l *Loader) {
-	l = &Loader{
+func NewLoader(w *World, pos [2]int32, r int32) (l Loader) {
+	l = Loader{
 		pos:       pos,
 		radius:    r,
 		w:         w,
