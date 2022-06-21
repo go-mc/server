@@ -64,33 +64,33 @@ func (p *Provider) getRegion(rx, rz int) (*region.Region, error) {
 }
 
 func (p *Provider) PutChunk(pos [2]int32, c *level.Chunk) (err error) {
-	var chunk save.Chunk
-	err = level.ChunkToSave(c, &chunk)
-	if err != nil {
-		return fmt.Errorf("encode chunk data fail: %w", err)
-	}
-
-	data, err := chunk.Data(1)
-	if err != nil {
-		return fmt.Errorf("record chunk data fail: %w", err)
-	}
-
-	r, err := p.getRegion(region.At(int(pos[0]), int(pos[1])))
-	if err != nil {
-		return fmt.Errorf("open region fail: %w", err)
-	}
-	defer func(r *region.Region) {
-		err2 := r.Close()
-		if err == nil && err2 != nil {
-			err = fmt.Errorf("open region fail: %w", err)
-		}
-	}(r)
-
-	x, z := region.In(int(pos[0]), int(pos[1]))
-	err = r.WriteSector(x, z, data)
-	if err != nil {
-		return fmt.Errorf("write sector fail: %w", err)
-	}
+	//var chunk save.Chunk
+	//err = level.ChunkToSave(c, &chunk)
+	//if err != nil {
+	//	return fmt.Errorf("encode chunk data fail: %w", err)
+	//}
+	//
+	//data, err := chunk.Data(1)
+	//if err != nil {
+	//	return fmt.Errorf("record chunk data fail: %w", err)
+	//}
+	//
+	//r, err := p.getRegion(region.At(int(pos[0]), int(pos[1])))
+	//if err != nil {
+	//	return fmt.Errorf("open region fail: %w", err)
+	//}
+	//defer func(r *region.Region) {
+	//	err2 := r.Close()
+	//	if err == nil && err2 != nil {
+	//		err = fmt.Errorf("open region fail: %w", err)
+	//	}
+	//}(r)
+	//
+	//x, z := region.In(int(pos[0]), int(pos[1]))
+	//err = r.WriteSector(x, z, data)
+	//if err != nil {
+	//	return fmt.Errorf("write sector fail: %w", err)
+	//}
 
 	return nil
 }

@@ -40,8 +40,8 @@ func (p *Provider) GetPlayer(name string, id uuid.UUID) (player *Player, errRet 
 		return nil, fmt.Errorf("close gzip reader fail: %w", err)
 	}
 	player = New(name, id)
-	player.pos = data.Pos
+	player.SetPos(data.Pos)
 	player.gamemode = data.PlayerGameType
-	player.viewDistance = 20
+	player.viewDistance = 10
 	return
 }

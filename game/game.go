@@ -52,19 +52,19 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 	logger.Info("Player join")
 	defer logger.Info("Player left")
 
-	c := client.New(g.log, conn)
 	p, err := g.playerProvider.GetPlayer(name, id)
 	if err != nil {
 		logger.Error("Read player data error", zap.Error(err))
 		return
 	}
+	c := client.New(g.log, conn, p)
 	g.keepAlive.ClientJoin(c)
 	defer g.keepAlive.ClientLeft(c)
 	c.AddHandler(packetid.ServerboundKeepAlive, keepAliveHandler{g.keepAlive})
 	g.playerList.ClientJoin(c, server.PlayerSample{Name: name, ID: id})
 	defer g.playerList.ClientLeft(c)
 
-	if err := c.Spawn(p, g.overworld); err != nil {
+	if err := c.Spawn(g.overworld); err != nil {
 		logger.Error("Spawn player error", zap.Error(err))
 		return
 	}

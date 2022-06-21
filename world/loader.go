@@ -11,8 +11,9 @@ type loader struct {
 	loaderSource
 	w *World
 
-	loaded    map[[2]int32]struct{}
-	loadQueue [][2]int32
+	loaded      map[[2]int32]struct{}
+	loadQueue   [][2]int32
+	unloadQueue [][2]int32
 }
 
 type loaderSource interface {
@@ -42,13 +43,12 @@ func (l *loader) calcLoadingQueue() {
 }
 
 func (l *loader) calcUnusedChunks() {
-	for diff := range l.loaded {
-		pos := l.ChunkPos()
-		diff := [2]int32{diff[0] - pos[0], diff[1] - pos[1]}
+	for chunkPos := range l.loaded {
+		currentPos := l.ChunkPos()
+		diff := [2]int32{chunkPos[0] - currentPos[0], chunkPos[1] - currentPos[1]}
 		r := l.ChunkRadius()
 		if distance(diff) > float64(r) {
-			delete(l.loaded, diff)
-			l.w.chunksRC[diff]--
+			l.unloadQueue = append(l.unloadQueue, chunkPos)
 		}
 	}
 }

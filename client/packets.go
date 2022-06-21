@@ -7,8 +7,8 @@ import (
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
+	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
-	"go.uber.org/zap"
 )
 
 func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) (err error) {
@@ -39,7 +39,7 @@ func (c *Client) SendDisconnect(reason chat.Message) {
 
 }
 
-func (c *Client) SendLogin(w *world.World, p *Player) error {
+func (c *Client) SendLogin(w *world.World, p *player.Player) error {
 	hashedSeed := w.HashedSeed()
 	return c.sendPacket(
 		packetid.ClientboundLogin,
@@ -66,17 +66,23 @@ func (c *Client) SendLogin(w *world.World, p *Player) error {
 }
 
 func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk) error {
-	return c.sendPacket(
-		packetid.ClientboundLevelChunkWithLight,
-		pos, chunk,
-	)
+	return c.sendPacket(packetid.ClientboundLevelChunkWithLight, pos, chunk)
+}
+
+func (c *Client) SendForgetLevelChunk(pos level.ChunkPos) error {
+	return c.sendPacket(packetid.ClientboundForgetLevelChunk, pos)
 }
 
 func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
-	c.log.Info("Send chunk load", zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
-	c.SendLevelChunkWithLight(pos, chunk)
+	err := c.SendLevelChunkWithLight(pos, chunk)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (c *Client) ViewChunkUnload(pos level.ChunkPos) {
-
+	err := c.SendForgetLevelChunk(pos)
+	if err != nil {
+		panic(err)
+	}
 }

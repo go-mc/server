@@ -8,33 +8,33 @@ import (
 	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type Client struct {
 	log      *zap.Logger
 	conn     *net.Conn
+	player   *player.Player
 	queue    *server.PacketQueue
 	handlers []packetHandler
 }
 
-type Player = player.Player
 type packetHandler interface {
 	Handle(p pk.Packet, c *Client) error
 }
 
-func New(log *zap.Logger, conn *net.Conn) *Client {
+func New(log *zap.Logger, conn *net.Conn, player *player.Player) *Client {
 	return &Client{
 		log:      log,
 		conn:     conn,
+		player:   player,
 		queue:    server.NewPacketQueue(),
 		handlers: defaultHandlers,
 	}
 }
 
-func (c *Client) Spawn(p *Player, w *world.World) error {
-	w.AddPlayer(c, p)
-	err := c.SendLogin(w, p)
+func (c *Client) Spawn(w *world.World) error {
+	err := c.SendLogin(w, c.player)
+	w.AddPlayer(c, c.player)
 	if err != nil {
 		return err
 	}
@@ -42,14 +42,14 @@ func (c *Client) Spawn(p *Player, w *world.World) error {
 }
 
 func (c *Client) Start() {
-	var wg sync.WaitGroup
-	wg.Add(1) // 只要有一个出错就退出
+	stopped := make(chan struct{}, 2)
 	done := func() {
-		wg.Done()
+		stopped <- struct{}{}
 	}
+	// 只要有一个出错就退出
 	go c.startSend(done)
 	go c.startReceive(done)
-	wg.Wait()
+	<-stopped
 }
 
 func (c *Client) startSend(done func()) {
@@ -114,11 +114,11 @@ var defaultHandlers = []packetHandler{
 	packetid.ServerboundJigsawGenerate:           nil,
 	packetid.ServerboundKeepAlive:                nil,
 	packetid.ServerboundLockDifficulty:           nil,
-	packetid.ServerboundMovePlayerPos:            nil,
-	packetid.ServerboundMovePlayerPosRot:         nil,
-	packetid.ServerboundMovePlayerRot:            nil,
-	packetid.ServerboundMovePlayerStatusOnly:     nil,
-	packetid.ServerboundMoveVehicle:              nil,
+	packetid.ServerboundMovePlayerPos:            clientMovePlayerPos{},
+	packetid.ServerboundMovePlayerPosRot:         clientMovePlayerPosRot{},
+	packetid.ServerboundMovePlayerRot:            clientMovePlayerRot{},
+	packetid.ServerboundMovePlayerStatusOnly:     clientMovePlayerStatusOnly{},
+	packetid.ServerboundMoveVehicle:              clientMoveVehicle{},
 	packetid.ServerboundPaddleBoat:               nil,
 	packetid.ServerboundPickItem:                 nil,
 	packetid.ServerboundPlaceRecipe:              nil,

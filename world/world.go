@@ -1,7 +1,6 @@
 package world
 
 import (
-	"errors"
 	"github.com/Tnze/go-mc/level"
 	"github.com/go-mc/server/player"
 	"go.uber.org/zap"
@@ -28,8 +27,8 @@ func New(logger *zap.Logger, provider Provider) (w *World) {
 		loaders:       make(map[*loader]Viewer),
 		chunkProvider: provider,
 	}
-	spawnLoader := NewLoader(w, spawnPoint{[2]int32{0, 0}, 20})
-	w.loaders[spawnLoader] = nil
+	//spawnLoader := NewLoader(w, spawnPoint{[2]int32{0, 0}, 20})
+	//w.loaders[spawnLoader] = nil
 	go w.tickLoop()
 	return
 }
@@ -58,20 +57,16 @@ func (w *World) AddPlayer(v Viewer, p *player.Player) {
 
 func (w *World) loadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
+	logger.Debug("Load chunk")
 	c, err := w.chunkProvider.GetChunk(pos)
-	if errors.Is(err, errChunkNotExist) {
+	if err != nil {
 		logger.Debug("Generate chunk")
 		// TODO: 目前还没有区块生成器，生成一个空区块,然后将区块标记为已生成
 		c = level.EmptyChunk(24)
-		//bedrock := block.ToStateID[block.Bedrock{}]
-		//for i := 0; i < 16*16; i++ {
-		//	c.Sections[0].SetBlock(i, bedrock)
-		//}
 		c.Status = level.StatusFull
 	} else if err != nil {
-		logger.Panic("Load chunk error", zap.Error(err))
+		//logger.Panic("Load chunk error", zap.Error(err))
 	}
-	logger.Debug("Load chunk")
 	w.chunks[pos] = &LoadedChunk{Chunk: c}
 }
 

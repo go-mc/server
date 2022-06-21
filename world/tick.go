@@ -1,6 +1,8 @@
 package world
 
-import "time"
+import (
+	"time"
+)
 
 func (w *World) tickLoop() {
 	ticker := time.NewTicker(time.Microsecond * 20)
@@ -17,9 +19,15 @@ func (w *World) tick() {
 	defer w.tickLock.Unlock()
 
 	for loader, viewer := range w.loaders {
+		loadChunkLimit := 4
 		loader.calcLoadingQueue()
-		loader.calcUnusedChunks()
 		for _, pos := range loader.loadQueue {
+			if loadChunkLimit > 0 {
+				loadChunkLimit--
+			} else {
+				break
+			}
+			loader.loaded[pos] = struct{}{}
 			if _, ok := w.chunks[pos]; !ok {
 				w.loadChunk(pos)
 			}
@@ -29,11 +37,31 @@ func (w *World) tick() {
 			lc.viewers = append(w.chunks[pos].viewers, viewer)
 			if viewer != nil {
 				viewer.ViewChunkLoad(pos, lc.Chunk)
-				loader.loaded[pos] = struct{}{}
 			}
 			lc.Unlock()
 		}
 		loader.loadQueue = loader.loadQueue[:0]
+
+		loader.calcUnusedChunks()
+		for _, pos := range loader.unloadQueue {
+			delete(loader.loaded, pos)
+			w.chunksRC[pos]--
+			lc := w.chunks[pos]
+			lc.Lock()
+			for i, v := range lc.viewers {
+				if v == viewer {
+					last := len(lc.viewers) - 1
+					lc.viewers[i] = lc.viewers[last]
+					lc.viewers = lc.viewers[:last]
+					break
+				}
+			}
+			if viewer != nil {
+				viewer.ViewChunkUnload(pos)
+			}
+			lc.Unlock()
+		}
+		loader.unloadQueue = loader.unloadQueue[:0]
 	}
 	for pos, count := range w.chunksRC {
 		if count == 0 {
