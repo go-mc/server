@@ -7,43 +7,39 @@ import (
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
-	"sync"
+	"github.com/go-mc/server/world"
+	"go.uber.org/zap"
 )
 
-var bufferPool = sync.Pool{New: func() any {
-	return new(bytes.Buffer)
-}}
-
-func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) error {
-	// Get buffers from the pool
-	buffer := bufferPool.Get().(*bytes.Buffer)
-	defer bufferPool.Put(buffer)
-	buffer.Reset()
+func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) (err error) {
+	var buffer bytes.Buffer
 
 	// Write the packet fields
 	for i := range fields {
-		if _, err := fields[i].WriteTo(buffer); err != nil {
-			return err
+		_, err = fields[i].WriteTo(&buffer)
+		if err != nil {
+			return
 		}
 	}
 
 	// Send the packet data
-	return c.conn.WritePacket(pk.Packet{
+	c.queue.Push(pk.Packet{
 		ID:   id,
 		Data: buffer.Bytes(),
 	})
+	return
 }
 
 func (c *Client) SendKeepAlive(id int64) {
-	c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
+	_ = c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
 }
 
 func (c *Client) SendDisconnect(reason chat.Message) {
-	c.sendPacket(packetid.ClientboundDisconnect, reason)
+	_ = c.sendPacket(packetid.ClientboundDisconnect, reason)
+
 }
 
-func (c *Client) SendLogin(p *Player) error {
-	w := p.World()
+func (c *Client) SendLogin(w *world.World, p *Player) error {
 	hashedSeed := w.HashedSeed()
 	return c.sendPacket(
 		packetid.ClientboundLogin,
@@ -74,4 +70,13 @@ func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk)
 		packetid.ClientboundLevelChunkWithLight,
 		pos, chunk,
 	)
+}
+
+func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
+	c.log.Info("Send chunk load", zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
+	c.SendLevelChunkWithLight(pos, chunk)
+}
+
+func (c *Client) ViewChunkUnload(pos level.ChunkPos) {
+
 }

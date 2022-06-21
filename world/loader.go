@@ -5,50 +5,50 @@ import (
 	"sort"
 )
 
-// Loader 用于实现世界区块的加载，每个 Loader 包含 位置 pos 和一个半径 r
+// loader 用于实现世界区块的加载，每个 loader 包含 位置 pos 和一个半径 r
 // 位置和半径指示的范围内的区块将被加载。
-type Loader struct {
-	pos    [2]int32
-	radius int32
-	w      *World
+type loader struct {
+	loaderSource
+	w *World
 
 	loaded    map[[2]int32]struct{}
 	loadQueue [][2]int32
 }
 
-func NewLoader(w *World, pos [2]int32, r int32) (l Loader) {
-	l = Loader{
-		pos:       pos,
-		radius:    r,
-		w:         w,
-		loaded:    map[[2]int32]struct{}{},
-		loadQueue: nil,
+type loaderSource interface {
+	ChunkPos() [2]int32
+	ChunkRadius() int32
+}
+
+func NewLoader(w *World, source loaderSource) (l *loader) {
+	l = &loader{
+		loaderSource: source,
+		w:            w,
+		loaded:       map[[2]int32]struct{}{},
+		loadQueue:    nil,
 	}
 	l.calcLoadingQueue()
 	return
 }
 
-func (l *Loader) Move(pos [2]int32) {
-	l.pos = pos
-	l.calcLoadingQueue()
-	l.unloadUnusedChunks()
-}
-
-func (l *Loader) calcLoadingQueue() {
-	for _, v := range loadList[:radiusIdx[l.radius]] {
-		pos := [2]int32{l.pos[0] + v[0], l.pos[1] + v[1]}
+func (l *loader) calcLoadingQueue() {
+	for _, v := range loadList[:radiusIdx[l.ChunkRadius()]] {
+		pos := l.ChunkPos()
+		pos[0], pos[1] = pos[0]+v[0], pos[1]+v[1]
 		if _, ok := l.loaded[pos]; !ok {
 			l.loadQueue = append(l.loadQueue, pos)
 		}
 	}
 }
 
-func (l *Loader) unloadUnusedChunks() {
-	for pos := range l.loaded {
-		diff := [2]int32{pos[0] - l.pos[0], pos[1] - l.pos[1]}
-		if distance(diff) > float64(l.radius) {
-			delete(l.loaded, pos)
-			l.w.chunksRC[pos]--
+func (l *loader) calcUnusedChunks() {
+	for diff := range l.loaded {
+		pos := l.ChunkPos()
+		diff := [2]int32{diff[0] - pos[0], diff[1] - pos[1]}
+		r := l.ChunkRadius()
+		if distance(diff) > float64(r) {
+			delete(l.loaded, diff)
+			l.w.chunksRC[diff]--
 		}
 	}
 }

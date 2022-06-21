@@ -32,7 +32,7 @@ func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
 	}(r)
 
 	x, z := region.In(int(pos[0]), int(pos[1]))
-	if r.ExistSector(x, z) {
+	if !r.ExistSector(x, z) {
 		return nil, errChunkNotExist
 	}
 

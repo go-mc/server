@@ -1,8 +1,11 @@
 package game
 
 import (
+	"context"
 	"crypto/rsa"
+	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
+	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/client"
 	"github.com/go-mc/server/player"
@@ -20,18 +23,22 @@ type Game struct {
 	playerProvider player.Provider
 	overworld      *world.World
 
-	keepAlive  server.KeepAlive
+	keepAlive  *server.KeepAlive
 	playerList *server.PlayerList // playerList for updating Ping&List info
 }
 
 func NewGame(log *zap.Logger, config Config, playerList *server.PlayerList) *Game {
 	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"))
-
+	keepAlive := server.NewKeepAlive()
+	go keepAlive.Run(context.TODO())
 	return &Game{
 		log:            log,
 		config:         config,
 		playerProvider: player.NewProvider(filepath.Join(".", config.LevelName, "playerdata")),
 		overworld:      world.New(log.Named("overworld"), overworld),
+
+		keepAlive:  keepAlive,
+		playerList: playerList,
 	}
 }
 
@@ -53,6 +60,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 	}
 	g.keepAlive.ClientJoin(c)
 	defer g.keepAlive.ClientLeft(c)
+	c.AddHandler(packetid.ServerboundKeepAlive, keepAliveHandler{g.keepAlive})
 	g.playerList.ClientJoin(c, server.PlayerSample{Name: name, ID: id})
 	defer g.playerList.ClientLeft(c)
 
@@ -61,4 +69,15 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 		return
 	}
 	c.Start()
+}
+
+type keepAliveHandler struct{ *server.KeepAlive }
+
+func (k keepAliveHandler) Handle(p pk.Packet, c *client.Client) error {
+	var req pk.Long
+	if err := p.Scan(&req); err != nil {
+		return err
+	}
+	k.KeepAlive.ClientTick(c)
+	return nil
 }

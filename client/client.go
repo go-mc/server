@@ -2,33 +2,22 @@ package client
 
 import (
 	"github.com/Tnze/go-mc/data/packetid"
-	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
+	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
+	"sync"
 )
 
 type Client struct {
 	log      *zap.Logger
 	conn     *net.Conn
+	queue    *server.PacketQueue
 	handlers []packetHandler
 }
 
-func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
-	c.SendLevelChunkWithLight(pos, chunk)
-}
-
-func (c *Client) ViewChunkUnload(pos level.ChunkPos) {
-	//TODO implement me
-	panic("implement me")
-}
-
-//type Player interface {
-//	SetWorld(w *world.World)
-//	GetLoader() *world.Loader
-//}
 type Player = player.Player
 type packetHandler interface {
 	Handle(p pk.Packet, c *Client) error
@@ -38,14 +27,14 @@ func New(log *zap.Logger, conn *net.Conn) *Client {
 	return &Client{
 		log:      log,
 		conn:     conn,
+		queue:    server.NewPacketQueue(),
 		handlers: defaultHandlers,
 	}
 }
 
 func (c *Client) Spawn(p *Player, w *world.World) error {
-	p.SetWorld(w)
-	//w.AddLoader(p.GetLoader(), c)
-	err := c.SendLogin(p)
+	w.AddPlayer(c, p)
+	err := c.SendLogin(w, p)
 	if err != nil {
 		return err
 	}
@@ -53,6 +42,33 @@ func (c *Client) Spawn(p *Player, w *world.World) error {
 }
 
 func (c *Client) Start() {
+	var wg sync.WaitGroup
+	wg.Add(1) // 只要有一个出错就退出
+	done := func() {
+		wg.Done()
+	}
+	go c.startSend(done)
+	go c.startReceive(done)
+	wg.Wait()
+}
+
+func (c *Client) startSend(done func()) {
+	defer done()
+	for {
+		p, ok := c.queue.Pull()
+		if !ok {
+			return
+		}
+		err := c.conn.WritePacket(p)
+		if err != nil {
+			c.log.Debug("Send packet fail", zap.Error(err))
+			return
+		}
+	}
+}
+
+func (c *Client) startReceive(done func()) {
+	defer done()
 	var packet pk.Packet
 	for {
 		err := c.conn.ReadPacket(&packet)
@@ -72,6 +88,10 @@ func (c *Client) Start() {
 			}
 		}
 	}
+}
+
+func (c *Client) AddHandler(id int32, handler packetHandler) {
+	c.handlers[id] = handler
 }
 
 var defaultHandlers = []packetHandler{

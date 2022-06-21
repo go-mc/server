@@ -3,6 +3,7 @@ package world
 import (
 	"errors"
 	"github.com/Tnze/go-mc/level"
+	"github.com/go-mc/server/player"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -12,24 +13,34 @@ type World struct {
 
 	chunks   map[[2]int32]*LoadedChunk
 	chunksRC map[[2]int32]int
-	loaders  map[*Loader]Viewer
+	loaders  map[*loader]Viewer
 
-	provider Provider
+	chunkProvider Provider
+
+	tickLock sync.Mutex
 }
 
 func New(logger *zap.Logger, provider Provider) (w *World) {
 	w = &World{
-		log:      logger,
-		chunks:   make(map[[2]int32]*LoadedChunk),
-		chunksRC: make(map[[2]int32]int),
-		loaders:  make(map[*Loader]Viewer),
-		provider: provider,
+		log:           logger,
+		chunks:        make(map[[2]int32]*LoadedChunk),
+		chunksRC:      make(map[[2]int32]int),
+		loaders:       make(map[*loader]Viewer),
+		chunkProvider: provider,
 	}
-	spawnLoader := NewLoader(w, [2]int32{0, 0}, 20)
-	w.loaders[&spawnLoader] = nil
+	spawnLoader := NewLoader(w, spawnPoint{[2]int32{0, 0}, 20})
+	w.loaders[spawnLoader] = nil
 	go w.tickLoop()
 	return
 }
+
+type spawnPoint struct {
+	pos [2]int32
+	r   int32
+}
+
+func (s spawnPoint) ChunkPos() [2]int32 { return s.pos }
+func (s spawnPoint) ChunkRadius() int32 { return s.r }
 
 func (w *World) Name() string {
 	return "minecraft:overworld"
@@ -38,9 +49,16 @@ func (w *World) Name() string {
 func (w *World) HashedSeed() [8]byte {
 	return [8]byte{}
 }
+
+func (w *World) AddPlayer(v Viewer, p *player.Player) {
+	w.tickLock.Lock()
+	defer w.tickLock.Unlock()
+	w.loaders[NewLoader(w, p)] = v
+}
+
 func (w *World) loadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
-	c, err := w.provider.GetChunk(pos)
+	c, err := w.chunkProvider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
 		// TODO: 目前还没有区块生成器，生成一个空区块,然后将区块标记为已生成
@@ -50,6 +68,8 @@ func (w *World) loadChunk(pos [2]int32) {
 		//	c.Sections[0].SetBlock(i, bedrock)
 		//}
 		c.Status = level.StatusFull
+	} else if err != nil {
+		logger.Panic("Load chunk error", zap.Error(err))
 	}
 	logger.Debug("Load chunk")
 	w.chunks[pos] = &LoadedChunk{Chunk: c}
@@ -67,7 +87,7 @@ func (w *World) unloadChunk(pos [2]int32) {
 		viewer.ViewChunkUnload(pos)
 	}
 	// 将该区块交给provider保存
-	err := w.provider.PutChunk(pos, c.Chunk)
+	err := w.chunkProvider.PutChunk(pos, c.Chunk)
 	if err != nil {
 		logger.Error("Store chunk data error", zap.Error(err))
 	}

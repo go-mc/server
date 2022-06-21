@@ -42,6 +42,6 @@ func (p *Provider) GetPlayer(name string, id uuid.UUID) (player *Player, errRet 
 	player = New(name, id)
 	player.pos = data.Pos
 	player.gamemode = data.PlayerGameType
-	player.viewDistance = 1
+	player.viewDistance = 20
 	return
 }

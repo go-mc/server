@@ -1,17 +1,13 @@
 package player
 
 import (
-	"github.com/go-mc/server/world"
 	"github.com/google/uuid"
 )
 
 type Player struct {
-	world.Loader
 	name     string
 	uuid     uuid.UUID
 	entityID int32
-
-	w *world.World
 
 	pos          [3]float64
 	viewDistance int32
@@ -28,14 +24,6 @@ func (p *Player) ID() int32 {
 
 func (p *Player) GameMode() byte {
 	return byte(p.gamemode)
-}
-
-func (p *Player) World() *world.World {
-	return p.w
-}
-
-func (p *Player) SetWorld(w *world.World) {
-	p.w = w
 }
 
 func (p *Player) ChunkRadius() int32 {
