@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"crypto/rsa"
+	"errors"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-mc/server/world"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"os"
 	"path/filepath"
 )
 
@@ -53,7 +55,12 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 	defer logger.Info("Player left")
 
 	p, err := g.playerProvider.GetPlayer(name, id)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
+		p = player.New(name, id)
+		p.SetGamemode(1)
+		p.SetPos([3]float64{48, 64, 35})
+		p.SetViewDistance(15)
+	} else if err != nil {
 		logger.Error("Read player data error", zap.Error(err))
 		return
 	}
@@ -68,6 +75,8 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.Public
 		logger.Error("Spawn player error", zap.Error(err))
 		return
 	}
+	defer g.overworld.RemovePlayer(c)
+
 	c.Start()
 }
 

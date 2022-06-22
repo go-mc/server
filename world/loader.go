@@ -9,8 +9,6 @@ import (
 // 位置和半径指示的范围内的区块将被加载。
 type loader struct {
 	loaderSource
-	w *World
-
 	loaded      map[[2]int32]struct{}
 	loadQueue   [][2]int32
 	unloadQueue [][2]int32
@@ -21,18 +19,19 @@ type loaderSource interface {
 	ChunkRadius() int32
 }
 
-func NewLoader(w *World, source loaderSource) (l *loader) {
+func NewLoader(source loaderSource) (l *loader) {
 	l = &loader{
 		loaderSource: source,
-		w:            w,
-		loaded:       map[[2]int32]struct{}{},
-		loadQueue:    nil,
+		loaded:       make(map[[2]int32]struct{}),
 	}
 	l.calcLoadingQueue()
 	return
 }
 
+// calcLoadingQueue calculate the chunks which the loader want to load.
+// The result is store in l.loadQueue and previous result will be clean.
 func (l *loader) calcLoadingQueue() {
+	l.loadQueue = l.loadQueue[:0]
 	for _, v := range loadList[:radiusIdx[l.ChunkRadius()]] {
 		pos := l.ChunkPos()
 		pos[0], pos[1] = pos[0]+v[0], pos[1]+v[1]
@@ -42,13 +41,15 @@ func (l *loader) calcLoadingQueue() {
 	}
 }
 
+// calcUnusedChunks calculate the chunks the loader want to forget.
+// Behaviour is same as calcLoadingQueue.
 func (l *loader) calcUnusedChunks() {
-	for chunkPos := range l.loaded {
-		currentPos := l.ChunkPos()
-		diff := [2]int32{chunkPos[0] - currentPos[0], chunkPos[1] - currentPos[1]}
+	l.unloadQueue = l.unloadQueue[:0]
+	for chunk := range l.loaded {
+		player := l.ChunkPos()
 		r := l.ChunkRadius()
-		if distance(diff) > float64(r) {
-			l.unloadQueue = append(l.unloadQueue, chunkPos)
+		if distance([2]int32{chunk[0] - player[0], chunk[1] - player[1]}) > float64(r) {
+			l.unloadQueue = append(l.unloadQueue, chunk)
 		}
 	}
 }

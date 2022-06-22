@@ -1,6 +1,7 @@
 package world
 
 import (
+	"errors"
 	"github.com/Tnze/go-mc/level"
 	"github.com/go-mc/server/player"
 	"go.uber.org/zap"
@@ -10,9 +11,8 @@ import (
 type World struct {
 	log *zap.Logger
 
-	chunks   map[[2]int32]*LoadedChunk
-	chunksRC map[[2]int32]int
-	loaders  map[*loader]Viewer
+	chunks  map[[2]int32]*LoadedChunk
+	loaders map[Viewer]*loader
 
 	chunkProvider Provider
 
@@ -23,8 +23,7 @@ func New(logger *zap.Logger, provider Provider) (w *World) {
 	w = &World{
 		log:           logger,
 		chunks:        make(map[[2]int32]*LoadedChunk),
-		chunksRC:      make(map[[2]int32]int),
-		loaders:       make(map[*loader]Viewer),
+		loaders:       make(map[Viewer]*loader),
 		chunkProvider: provider,
 	}
 	//spawnLoader := NewLoader(w, spawnPoint{[2]int32{0, 0}, 20})
@@ -52,27 +51,43 @@ func (w *World) HashedSeed() [8]byte {
 func (w *World) AddPlayer(v Viewer, p *player.Player) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
-	w.loaders[NewLoader(w, p)] = v
+	w.loaders[v] = NewLoader(p)
 }
 
-func (w *World) loadChunk(pos [2]int32) {
+func (w *World) RemovePlayer(v Viewer) {
+	w.tickLock.Lock()
+	defer w.tickLock.Unlock()
+	w.log.Debug("Remove Player",
+		zap.Int("loader count", len(w.loaders[v].loaded)),
+		zap.Int("world count", len(w.chunks)),
+	)
+	for pos := range w.loaders[v].loaded {
+		if !w.chunks[pos].RemoveViewer(v) {
+			w.log.Panic("viewer is not found in the loaded chunk")
+		}
+	}
+	delete(w.loaders, v)
+}
+
+func (w *World) loadChunk(pos [2]int32) bool {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
-	logger.Debug("Load chunk")
+	//logger.Debug("Load chunk")
 	c, err := w.chunkProvider.GetChunk(pos)
-	if err != nil {
+	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
 		// TODO: 目前还没有区块生成器，生成一个空区块,然后将区块标记为已生成
 		c = level.EmptyChunk(24)
 		c.Status = level.StatusFull
 	} else if err != nil {
-		//logger.Panic("Load chunk error", zap.Error(err))
+		return false
 	}
 	w.chunks[pos] = &LoadedChunk{Chunk: c}
+	return true
 }
 
 func (w *World) unloadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
-	logger.Debug("Unload chunk")
+	//logger.Debug("Unload chunk")
 	c, ok := w.chunks[pos]
 	if !ok {
 		logger.Panic("Unloading an non-exist chunk")
@@ -93,6 +108,31 @@ type LoadedChunk struct {
 	sync.Mutex
 	viewers []Viewer
 	*level.Chunk
+}
+
+func (lc *LoadedChunk) AddViewer(v Viewer) {
+	lc.Lock()
+	defer lc.Unlock()
+	//for _, v2 := range lc.viewers {
+	//	if v2 == v {
+	//		panic("append an exist viewer")
+	//	}
+	//}
+	lc.viewers = append(lc.viewers, v)
+}
+
+func (lc *LoadedChunk) RemoveViewer(v Viewer) bool {
+	lc.Lock()
+	defer lc.Unlock()
+	for i, v2 := range lc.viewers {
+		if v2 == v {
+			last := len(lc.viewers) - 1
+			lc.viewers[i] = lc.viewers[last]
+			lc.viewers = lc.viewers[:last]
+			return true
+		}
+	}
+	return false
 }
 
 type Entity interface {

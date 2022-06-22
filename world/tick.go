@@ -6,67 +6,59 @@ import (
 
 func (w *World) tickLoop() {
 	ticker := time.NewTicker(time.Microsecond * 20)
+	var n uint
 	for {
 		select {
 		case <-ticker.C:
-			w.tick()
+			w.tick(n)
 		}
+		n++
 	}
 }
 
-func (w *World) tick() {
+func (w *World) tick(n uint) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
 
-	for loader, viewer := range w.loaders {
-		loadChunkLimit := 4
+	if n%8 == 0 {
+		w.subtickChunkLoad()
+	}
+}
+
+func (w *World) subtickChunkLoad() {
+	for viewer, loader := range w.loaders {
 		loader.calcLoadingQueue()
 		for _, pos := range loader.loadQueue {
-			if loadChunkLimit > 0 {
-				loadChunkLimit--
-			} else {
-				break
+			if _, ok := w.chunks[pos]; !ok {
+				if !w.loadChunk(pos) {
+					continue
+				}
 			}
 			loader.loaded[pos] = struct{}{}
-			if _, ok := w.chunks[pos]; !ok {
-				w.loadChunk(pos)
-			}
-			w.chunksRC[pos]++
 			lc := w.chunks[pos]
+			lc.AddViewer(viewer)
 			lc.Lock()
-			lc.viewers = append(w.chunks[pos].viewers, viewer)
-			if viewer != nil {
-				viewer.ViewChunkLoad(pos, lc.Chunk)
-			}
+			viewer.ViewChunkLoad(pos, lc.Chunk)
 			lc.Unlock()
 		}
-		loader.loadQueue = loader.loadQueue[:0]
-
+	}
+	for viewer, loader := range w.loaders {
 		loader.calcUnusedChunks()
 		for _, pos := range loader.unloadQueue {
 			delete(loader.loaded, pos)
-			w.chunksRC[pos]--
-			lc := w.chunks[pos]
-			lc.Lock()
-			for i, v := range lc.viewers {
-				if v == viewer {
-					last := len(lc.viewers) - 1
-					lc.viewers[i] = lc.viewers[last]
-					lc.viewers = lc.viewers[:last]
-					break
-				}
+			if !w.chunks[pos].RemoveViewer(viewer) {
+				w.log.Panic("viewer is not found in the loaded chunk")
 			}
-			if viewer != nil {
-				viewer.ViewChunkUnload(pos)
-			}
-			lc.Unlock()
+			viewer.ViewChunkUnload(pos)
 		}
-		loader.unloadQueue = loader.unloadQueue[:0]
 	}
-	for pos, count := range w.chunksRC {
-		if count == 0 {
-			w.unloadChunk(pos)
-			delete(w.chunksRC, pos)
+	var unloadQueue [][2]int32
+	for pos, chunk := range w.chunks {
+		if len(chunk.viewers) == 0 {
+			unloadQueue = append(unloadQueue, pos)
 		}
+	}
+	for i := range unloadQueue {
+		w.unloadChunk(unloadQueue[i])
 	}
 }

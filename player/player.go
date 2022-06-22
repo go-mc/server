@@ -28,12 +28,20 @@ func (p *Player) ID() int32 {
 	return p.entityID
 }
 
-func (p *Player) GameMode() byte {
-	return byte(p.gamemode)
+func (p *Player) Gamemode() int32 {
+	return atomic.LoadInt32(&p.gamemode)
+}
+
+func (p *Player) SetGamemode(mode int32) {
+	atomic.StoreInt32(&p.gamemode, mode)
 }
 
 func (p *Player) ChunkRadius() int32 {
 	return atomic.LoadInt32(&p.viewDistance)
+}
+
+func (p *Player) SetViewDistance(d int32) {
+	atomic.StoreInt32(&p.viewDistance, d)
 }
 
 func (p *Player) ClientInformation() {

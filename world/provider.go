@@ -6,20 +6,26 @@ import (
 	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/save/region"
+	"golang.org/x/time/rate"
 	"io/fs"
 	"path/filepath"
+	"time"
 )
 
 // Provider 提供区块的存储功能
 type Provider struct {
-	dir string
+	dir     string
+	limiter *rate.Limiter
 }
 
 func NewProvider(dir string) Provider {
-	return Provider{dir: dir}
+	return Provider{dir: dir, limiter: rate.NewLimiter(rate.Every(time.Millisecond*20), 30)}
 }
 
 func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
+	if !p.limiter.Allow() {
+		return nil, errors.New("reach time limit")
+	}
 	r, err := p.getRegion(region.At(int(pos[0]), int(pos[1])))
 	if err != nil {
 		return nil, fmt.Errorf("open region fail: %w", err)

@@ -45,7 +45,7 @@ func (c *Client) SendLogin(w *world.World, p *player.Player) error {
 		packetid.ClientboundLogin,
 		pk.Int(p.ID()),
 		pk.Boolean(false), // Is Hardcore
-		pk.Byte(p.GameMode()),
+		pk.Byte(p.Gamemode()),
 		pk.Byte(-1),
 		pk.Array([]pk.String{
 			pk.String(w.Name()),
