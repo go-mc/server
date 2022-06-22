@@ -44,7 +44,7 @@ func NewGame(log *zap.Logger, config Config, playerList *server.PlayerList) *Gam
 	}
 }
 
-// AcceptPlayer 在新玩家登入时在单独的goroutine中被调用
+// AcceptPlayer will be called in an independent goroutine when new player login
 func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *rsa.PublicKey, protocol int32, conn *net.Conn) {
 	logger := g.log.With(
 		zap.String("name", name),

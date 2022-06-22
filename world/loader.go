@@ -5,8 +5,8 @@ import (
 	"sort"
 )
 
-// loader 用于实现世界区块的加载，每个 loader 包含 位置 pos 和一个半径 r
-// 位置和半径指示的范围内的区块将被加载。
+// loader take part in chunk loading，each loader contains a position 'pos' and a radius 'r'
+// chunks pointed by the position and the radius of loader will be load。
 type loader struct {
 	loaderSource
 	loaded      map[[2]int32]struct{}
@@ -28,8 +28,8 @@ func NewLoader(source loaderSource) (l *loader) {
 	return
 }
 
-// calcLoadingQueue calculate the chunks which the loader want to load.
-// The result is store in l.loadQueue and previous result will be clean.
+// calcLoadingQueue calculate the chunks which loader point.
+// The result is stored in l.loadQueue and the previous will be removed.
 func (l *loader) calcLoadingQueue() {
 	l.loadQueue = l.loadQueue[:0]
 	for _, v := range loadList[:radiusIdx[l.ChunkRadius()]] {
@@ -41,8 +41,8 @@ func (l *loader) calcLoadingQueue() {
 	}
 }
 
-// calcUnusedChunks calculate the chunks the loader want to forget.
-// Behaviour is same as calcLoadingQueue.
+// calcUnusedChunks calculate the chunks the loader want to remove.
+// Behaviour is same with calcLoadingQueue.
 func (l *loader) calcUnusedChunks() {
 	l.unloadQueue = l.unloadQueue[:0]
 	for chunk := range l.loaded {
@@ -54,17 +54,17 @@ func (l *loader) calcUnusedChunks() {
 	}
 }
 
-// loadList 是(0, 0)周围一定范围内的区块，按欧几里得距离排序的列表
-// 越靠前的区块距离(0, 0)越近，越靠近末尾的区块距离(0, 0)越远
+// loadList is chunks in a certain distance of (0, 0), order by euclidean distance
+// the more forward the chunk is, the closer it to (0, 0)
 var loadList [][2]int32
 
-// radiusIdx 中下标为i的数n，代表loadList中前n个区块到(0, 0)的距离在i以内
+// radiusIdx[i] is the count of chunks in loadList and the distance of i
 var radiusIdx []int
 
 func init() {
 	const maxR int32 = 32
 
-	// 计算 loadList
+	// calculate loadList
 	for x := -maxR; x <= maxR; x++ {
 		for z := -maxR; z <= maxR; z++ {
 			pos := [2]int32{x, z}
@@ -77,7 +77,7 @@ func init() {
 		return distance(loadList[i]) < distance(loadList[j])
 	})
 
-	// 计算 radiusIdx
+	// calculate radiusIdx
 	radiusIdx = make([]int, maxR+1)
 	for i, v := range loadList {
 		r := int32(math.Ceil(distance(v)))
@@ -88,7 +88,7 @@ func init() {
 	}
 }
 
-// distance 计算一个坐标到原点的欧几里得距离
+// distance calculate the euclidean distance that a position to the origin point
 func distance(pos [2]int32) float64 {
 	return math.Sqrt(float64(pos[0]*pos[0]) + float64(pos[1]*pos[1]))
 }

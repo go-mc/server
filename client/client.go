@@ -46,7 +46,7 @@ func (c *Client) Start() {
 	done := func() {
 		stopped <- struct{}{}
 	}
-	// 只要有一个出错就退出
+	// Exit when any error is thrown
 	go c.startSend(done)
 	go c.startReceive(done)
 	<-stopped
@@ -102,7 +102,7 @@ var defaultHandlers = []packetHandler{
 	packetid.ServerboundChat:                     nil,
 	packetid.ServerboundChatPreview:              nil,
 	packetid.ServerboundClientCommand:            nil,
-	packetid.ServerboundClientInformation:        clientInfomation{},
+	packetid.ServerboundClientInformation:        clientInformation{},
 	packetid.ServerboundCommandSuggestion:        nil,
 	packetid.ServerboundContainerButtonClick:     nil,
 	packetid.ServerboundContainerClick:           nil,

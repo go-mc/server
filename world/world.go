@@ -75,7 +75,7 @@ func (w *World) loadChunk(pos [2]int32) bool {
 	c, err := w.chunkProvider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
-		// TODO: 目前还没有区块生成器，生成一个空区块,然后将区块标记为已生成
+		// TODO: because there is no chunk generator，generate an empty chunk and mark it as generated
 		c = level.EmptyChunk(24)
 		c.Status = level.StatusFull
 	} else if err != nil {
@@ -92,11 +92,11 @@ func (w *World) unloadChunk(pos [2]int32) {
 	if !ok {
 		logger.Panic("Unloading an non-exist chunk")
 	}
-	// 通知所有监视该区块的viewer卸载该区块
+	// notify all viewers who are watching the chunk to unload the chunk
 	for _, viewer := range c.viewers {
 		viewer.ViewChunkUnload(pos)
 	}
-	// 将该区块交给provider保存
+	// move the chunk to provider and save
 	err := w.chunkProvider.PutChunk(pos, c.Chunk)
 	if err != nil {
 		logger.Error("Store chunk data error", zap.Error(err))
