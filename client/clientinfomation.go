@@ -2,9 +2,9 @@ package client
 
 import pk "github.com/Tnze/go-mc/net/packet"
 
-type clientInfomation struct{}
+type clientInformation struct{}
 
-func (c clientInfomation) Handle(p pk.Packet, client *Client) error {
+func (c clientInformation) Handle(p pk.Packet, client *Client) error {
 	var (
 		Locale              pk.String
 		ViewDistance        pk.Byte

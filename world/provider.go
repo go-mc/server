@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Provider 提供区块的存储功能
+// Provider implements chunk storage
 type Provider struct {
 	dir     string
 	limiter *rate.Limiter

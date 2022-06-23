@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	// 初始化日志库
+	// initialize log library
 	logger := unwrap(zap.NewDevelopment())
 	//logger := unwrap(zap.NewProduction())
 	defer logger.Sync()
@@ -21,14 +21,14 @@ func main() {
 	printBuildInfo(logger)
 	defer logger.Info("Program exit")
 
-	// 读取服务器配置文件
+	// load server config
 	config, err := readConfig()
 	if err != nil {
 		logger.Error("Read config fail", zap.Error(err))
 		return
 	}
 
-	// 初始化玩家列表和服务器状态信息模块，这两个模块相辅相成，用于服务器Ping&List信息的显示
+	// initialize player list and server status module, the two modules work together to show server Ping&List information
 	playerList := server.NewPlayerList(config.MaxPlayers)
 	serverInfo := server.NewPingInfo(
 		"Go-MC "+server.ProtocolName,
@@ -51,7 +51,7 @@ func main() {
 			OnlineMode:           config.OnlineMode,
 			EnforceSecureProfile: config.EnforceSecureProfile,
 			Threshold:            config.NetworkCompressionThreshold,
-			LoginChecker:         playerList, // playerList实现了LoginChecker接口，用于限制服务器最大人数
+			LoginChecker:         playerList, // playerList implement LoginChecker interface to limit the maximum number of online players
 		},
 		GamePlay: game.NewGame(logger, config, playerList),
 	}
@@ -62,7 +62,7 @@ func main() {
 	}
 }
 
-// printBuildInfo 通过runtime/debug包读取二进制程序编译信息，并输出至日志
+// printBuildInfo reading compile information of the binary program with runtime/debug package，and print it to log
 func printBuildInfo(logger *zap.Logger) {
 	binaryInfo, _ := debug.ReadBuildInfo()
 	settings := make(map[string]string)
@@ -72,7 +72,7 @@ func printBuildInfo(logger *zap.Logger) {
 	logger.Debug("Build info", zap.Any("settings", settings))
 }
 
-// readConfig 从配置文件中读取服务器设置，当配置文件中出现无法识别的未知设置时报错
+// readConfig read server config from config file. Throw error when meet unknown setting
 func readConfig() (game.Config, error) {
 	var c game.Config
 	meta, err := toml.DecodeFile("config.toml", &c)
