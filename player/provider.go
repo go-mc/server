@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"github.com/Tnze/go-mc/save"
+	"github.com/Tnze/go-mc/server/auth"
 	"github.com/google/uuid"
 	"os"
 	"path/filepath"
@@ -17,7 +18,7 @@ func NewProvider(dir string) Provider {
 	return Provider{dir: dir}
 }
 
-func (p *Provider) GetPlayer(name string, id uuid.UUID) (player *Player, errRet error) {
+func (p *Provider) GetPlayer(name string, id uuid.UUID, pubKey *auth.PublicKey, properties []auth.Property) (player *Player, errRet error) {
 	f, err := os.Open(filepath.Join(p.dir, id.String()+".dat"))
 	if err != nil {
 		return nil, err
@@ -39,7 +40,7 @@ func (p *Provider) GetPlayer(name string, id uuid.UUID) (player *Player, errRet 
 	if err := r.Close(); err != nil {
 		return nil, fmt.Errorf("close gzip reader fail: %w", err)
 	}
-	player = New(name, id)
+	player = New(name, id, pubKey, properties)
 	player.SetPos(data.Pos)
 	player.SetGamemode(data.PlayerGameType)
 	player.SetViewDistance(10)

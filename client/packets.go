@@ -9,16 +9,17 @@ import (
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
+	"go.uber.org/zap"
+	"time"
 )
 
-func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) (err error) {
+func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) {
 	var buffer bytes.Buffer
 
 	// Write the packet fields
 	for i := range fields {
-		_, err = fields[i].WriteTo(&buffer)
-		if err != nil {
-			return
+		if _, err := fields[i].WriteTo(&buffer); err != nil {
+			c.log.Panic("Marshal packet error", zap.Error(err))
 		}
 	}
 
@@ -27,21 +28,19 @@ func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) (err error) {
 		ID:   id,
 		Data: buffer.Bytes(),
 	})
-	return
 }
 
 func (c *Client) SendKeepAlive(id int64) {
-	_ = c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
+	c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
 }
 
 func (c *Client) SendDisconnect(reason chat.Message) {
-	_ = c.sendPacket(packetid.ClientboundDisconnect, reason)
-
+	c.sendPacket(packetid.ClientboundDisconnect, reason)
 }
 
-func (c *Client) SendLogin(w *world.World, p *player.Player) error {
+func (c *Client) SendLogin(w *world.World, p *player.Player) {
 	hashedSeed := w.HashedSeed()
-	return c.sendPacket(
+	c.sendPacket(
 		packetid.ClientboundLogin,
 		pk.Int(p.ID()),
 		pk.Boolean(false), // Is Hardcore
@@ -65,24 +64,70 @@ func (c *Client) SendLogin(w *world.World, p *player.Player) error {
 	)
 }
 
-func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk) error {
-	return c.sendPacket(packetid.ClientboundLevelChunkWithLight, pos, chunk)
+func (c *Client) SendPlayerInfoAdd(players []*player.Player) {
+	var buffer bytes.Buffer
+	_, err := pk.Tuple{
+		pk.VarInt(0),            // Action
+		pk.VarInt(len(players)), // Number of players
+	}.WriteTo(&buffer)
+	if err != nil {
+		c.log.Panic("Marshal packet error", zap.Error(err))
+	}
+
+	// Player
+	for _, p := range players {
+		pubKey := p.PublicKey()
+		_, err := pk.Tuple{
+			pk.UUID(p.UUID()),
+			pk.String(p.Name()),
+			pk.Array(p.Properties()),
+			pk.VarInt(p.Gamemode()),
+			pk.VarInt(p.Latency().Milliseconds()),
+			pk.Boolean(false), // Has Display Name
+			pk.Boolean(pubKey != nil),
+			pk.Opt{
+				Has:   pubKey != nil,
+				Field: pubKey,
+			},
+		}.WriteTo(&buffer)
+		if err != nil {
+			c.log.Panic("Marshal packet error", zap.Error(err))
+		}
+	}
+	c.queue.Push(pk.Packet{
+		ID:   packetid.ClientboundPlayerInfo,
+		Data: buffer.Bytes(),
+	})
 }
 
-func (c *Client) SendForgetLevelChunk(pos level.ChunkPos) error {
-	return c.sendPacket(packetid.ClientboundForgetLevelChunk, pos)
+func (c *Client) SendPlayerInfoUpdateLatency(player *player.Player, latency time.Duration) {
+	c.sendPacket(
+		packetid.ClientboundPlayerInfo,
+		pk.VarInt(2),
+		pk.VarInt(1),
+		pk.UUID(player.UUID()),
+		pk.VarInt(latency.Milliseconds()),
+	)
+}
+
+func (c *Client) SendPlayerInfoRemove(player *player.Player) {
+	c.sendPacket(
+		packetid.ClientboundPlayerInfo,
+		pk.VarInt(4),
+		pk.VarInt(1),
+		pk.UUID(player.UUID()),
+	)
+}
+
+func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk) {
+	c.sendPacket(packetid.ClientboundLevelChunkWithLight, pos, chunk)
+}
+
+func (c *Client) SendForgetLevelChunk(pos level.ChunkPos) {
+	c.sendPacket(packetid.ClientboundForgetLevelChunk, pos)
 }
 
 func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
-	err := c.SendLevelChunkWithLight(pos, chunk)
-	if err != nil {
-		panic(err)
-	}
+	c.SendLevelChunkWithLight(pos, chunk)
 }
-
-func (c *Client) ViewChunkUnload(pos level.ChunkPos) {
-	err := c.SendForgetLevelChunk(pos)
-	if err != nil {
-		panic(err)
-	}
-}
+func (c *Client) ViewChunkUnload(pos level.ChunkPos) { c.SendForgetLevelChunk(pos) }

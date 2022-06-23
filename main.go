@@ -3,12 +3,11 @@ package main
 import (
 	"github.com/BurntSushi/toml"
 	"github.com/Tnze/go-mc/chat"
+	"github.com/Tnze/go-mc/server"
+	"github.com/go-mc/server/game"
 	"go.uber.org/zap"
 	"runtime/debug"
 	"strings"
-
-	"github.com/Tnze/go-mc/server"
-	"github.com/go-mc/server/game"
 )
 
 func main() {

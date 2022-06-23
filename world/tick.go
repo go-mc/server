@@ -5,13 +5,9 @@ import (
 )
 
 func (w *World) tickLoop() {
-	ticker := time.NewTicker(time.Microsecond * 20)
 	var n uint
-	for {
-		select {
-		case <-ticker.C:
-			w.tick(n)
-		}
+	for range time.Tick(time.Microsecond * 20) {
+		w.tick(n)
 		n++
 	}
 }
@@ -26,6 +22,7 @@ func (w *World) tick(n uint) {
 }
 
 func (w *World) subtickChunkLoad() {
+	// 由于w.loaders的遍历顺序是随机的，所以每个loader每次都有相同的机会，相对比较公平
 	for viewer, loader := range w.loaders {
 		loader.calcLoadingQueue()
 		for _, pos := range loader.loadQueue {

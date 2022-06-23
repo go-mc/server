@@ -33,11 +33,8 @@ func New(log *zap.Logger, conn *net.Conn, player *player.Player) *Client {
 }
 
 func (c *Client) Spawn(w *world.World) error {
-	err := c.SendLogin(w, c.player)
+	c.SendLogin(w, c.player)
 	w.AddPlayer(c, c.player)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -90,9 +87,8 @@ func (c *Client) startReceive(done func()) {
 	}
 }
 
-func (c *Client) AddHandler(id int32, handler packetHandler) {
-	c.handlers[id] = handler
-}
+func (c *Client) AddHandler(id int32, handler packetHandler) { c.handlers[id] = handler }
+func (c *Client) GetPlayer() *player.Player                  { return c.player }
 
 var defaultHandlers = []packetHandler{
 	packetid.ServerboundAcceptTeleportation:      nil,
