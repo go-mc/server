@@ -199,6 +199,38 @@ func (c *Client) SendRemoveEntities(entityIDs []int32) {
 	)
 }
 
+type ChatType int32
+
+const (
+	Chat ChatType = iota
+	System
+	GameInfo
+	SayCommand
+	MsgCommand
+	TeamMsgCommand
+	EmoteCommand
+	TellrawCommand
+)
+
+func (c *Client) SendSystemChat(msg chat.Message, typeID ChatType) {
+	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.VarInt(typeID))
+}
+
+func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *chat.Message, typeID ChatType, timestamp int64, salt int64, signature []byte) {
+	c.sendPacket(packetid.ClientboundPlayerChat,
+		chat.Text(plain),
+		pk.Boolean(message != nil),
+		pk.Opt{Has: message != nil, Field: message},
+		pk.VarInt(typeID),
+		pk.UUID(sender.UUID),
+		chat.Text(sender.Name),
+		pk.Boolean(false), // has team name
+		pk.Long(timestamp),
+		pk.Long(salt),
+		pk.ByteArray(signature),
+	)
+}
+
 func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
 	c.SendLevelChunkWithLight(pos, chunk)
 }

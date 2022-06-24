@@ -3,6 +3,8 @@ package game
 import (
 	"context"
 	"errors"
+	"github.com/Tnze/go-mc/chat"
+	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
 	"github.com/Tnze/go-mc/server"
 	"github.com/Tnze/go-mc/server/auth"
@@ -23,6 +25,7 @@ type Game struct {
 	playerProvider world.PlayerProvider
 	overworld      *world.World
 
+	globalChat globalChat
 	*playerList
 }
 
@@ -44,6 +47,7 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 		playerProvider: world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata")),
 		overworld:      world.New(log.Named("overworld"), overworld),
 
+		globalChat: globalChat{log.Named("Chat"), &pl},
 		playerList: &pl,
 	}
 }
@@ -55,8 +59,6 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 		zap.String("uuid", id.String()),
 		zap.Int32("protocol", protocol),
 	)
-	logger.Info("Player join")
-	defer logger.Info("Player left")
 
 	p, err := g.playerProvider.GetPlayer(name, id, profilePubKey, properties)
 	if errors.Is(err, os.ErrNotExist) {
@@ -71,8 +73,8 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 			PubKey:         profilePubKey,
 			Properties:     properties,
 			Gamemode:       1,
+			ChunkPos:       [2]int32{48 >> 5, 35 >> 5},
 			EntitiesInView: make(map[int32]*world.Entity),
-			ChunkPos:       [2]int32{},
 			ViewDistance:   10,
 		}
 	} else if err != nil {
@@ -81,8 +83,18 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	}
 	c := client.New(logger, conn, p)
 
+	logger.Info("Player join", zap.Int32("eid", p.EntityID))
+	defer logger.Info("Player left")
+
 	g.playerList.addPlayer(c, p)
 	defer g.playerList.removePlayer(c)
+
+	joinMsg := chat.TranslateMsg("multiplayer.player.joined", chat.Text(p.Name)).SetColor(chat.Yellow)
+	leftMsg := chat.TranslateMsg("multiplayer.player.left", chat.Text(p.Name)).SetColor(chat.Yellow)
+	g.globalChat.broadcastSystemChat(joinMsg, client.System)
+	defer g.globalChat.broadcastSystemChat(leftMsg, client.System)
+
+	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
 
 	c.SendLogin(g.overworld, p)
 	g.overworld.AddPlayer(c, p)

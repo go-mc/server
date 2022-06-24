@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/BurntSushi/toml"
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/server"
@@ -10,10 +11,17 @@ import (
 	"strings"
 )
 
+var isDebug = flag.Bool("debug", false, "Enable debug log output")
+
 func main() {
+	flag.Parse()
 	// initialize log library
-	logger := unwrap(zap.NewDevelopment())
-	//logger := unwrap(zap.NewProduction())
+	var logger *zap.Logger
+	if *isDebug {
+		logger = unwrap(zap.NewDevelopment())
+	} else {
+		logger = unwrap(zap.NewProduction())
+	}
 	defer logger.Sync()
 
 	logger.Info("Program start")

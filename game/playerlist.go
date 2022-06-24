@@ -46,6 +46,7 @@ func (pl *playerList) removePlayer(c *client.Client) {
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendPlayerInfoRemove(p)
 	})
+
 }
 
 type keepAliveHandler struct{ *server.KeepAlive }
