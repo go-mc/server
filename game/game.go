@@ -7,7 +7,6 @@ import (
 	"github.com/Tnze/go-mc/server"
 	"github.com/Tnze/go-mc/server/auth"
 	"github.com/go-mc/server/client"
-	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -21,7 +20,7 @@ type Game struct {
 
 	config Config
 
-	playerProvider player.Provider
+	playerProvider world.PlayerProvider
 	overworld      *world.World
 
 	*playerList
@@ -42,7 +41,7 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 
 		config: config,
 
-		playerProvider: player.NewProvider(filepath.Join(".", config.LevelName, "playerdata")),
+		playerProvider: world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata")),
 		overworld:      world.New(log.Named("overworld"), overworld),
 
 		playerList: &pl,
@@ -61,10 +60,21 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 
 	p, err := g.playerProvider.GetPlayer(name, id, profilePubKey, properties)
 	if errors.Is(err, os.ErrNotExist) {
-		p = player.New(name, id, profilePubKey, properties)
-		p.SetGamemode(1)
-		p.SetPos([3]float64{48, 64, 35})
-		p.SetViewDistance(15)
+		p = &world.Player{
+			Entity: world.Entity{
+				EntityID: world.NewEntityID(),
+				Position: [3]float64{48, 64, 35},
+				Rotation: [2]float32{},
+			},
+			Name:           name,
+			UUID:           id,
+			PubKey:         profilePubKey,
+			Properties:     properties,
+			Gamemode:       1,
+			EntitiesInView: make(map[int32]*world.Entity),
+			ChunkPos:       [2]int32{},
+			ViewDistance:   10,
+		}
 	} else if err != nil {
 		logger.Error("Read player data error", zap.Error(err))
 		return
@@ -74,11 +84,9 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	g.playerList.addPlayer(c, p)
 	defer g.playerList.removePlayer(c)
 
-	if err := c.Spawn(g.overworld); err != nil {
-		logger.Error("Spawn player error", zap.Error(err))
-		return
-	}
-	defer g.overworld.RemovePlayer(c)
+	c.SendLogin(g.overworld, p)
+	g.overworld.AddPlayer(c, p)
+	defer g.overworld.RemovePlayer(c, p)
 
 	c.Start()
 }

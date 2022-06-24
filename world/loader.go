@@ -15,7 +15,7 @@ type loader struct {
 }
 
 type loaderSource interface {
-	ChunkPos() [2]int32
+	ChunkPosition() [2]int32
 	ChunkRadius() int32
 }
 
@@ -33,7 +33,7 @@ func NewLoader(source loaderSource) (l *loader) {
 func (l *loader) calcLoadingQueue() {
 	l.loadQueue = l.loadQueue[:0]
 	for _, v := range loadList[:radiusIdx[l.ChunkRadius()]] {
-		pos := l.ChunkPos()
+		pos := l.ChunkPosition()
 		pos[0], pos[1] = pos[0]+v[0], pos[1]+v[1]
 		if _, ok := l.loaded[pos]; !ok {
 			l.loadQueue = append(l.loadQueue, pos)
@@ -46,7 +46,7 @@ func (l *loader) calcLoadingQueue() {
 func (l *loader) calcUnusedChunks() {
 	l.unloadQueue = l.unloadQueue[:0]
 	for chunk := range l.loaded {
-		player := l.ChunkPos()
+		player := l.ChunkPosition()
 		r := l.ChunkRadius()
 		if distance([2]int32{chunk[0] - player[0], chunk[1] - player[1]}) > float64(r) {
 			l.unloadQueue = append(l.unloadQueue, chunk)

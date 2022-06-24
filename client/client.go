@@ -5,7 +5,6 @@ import (
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
-	"github.com/go-mc/server/player"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
 )
@@ -13,7 +12,7 @@ import (
 type Client struct {
 	log      *zap.Logger
 	conn     *net.Conn
-	player   *player.Player
+	player   *world.Player
 	queue    *server.PacketQueue
 	handlers []packetHandler
 }
@@ -22,7 +21,7 @@ type packetHandler interface {
 	Handle(p pk.Packet, c *Client) error
 }
 
-func New(log *zap.Logger, conn *net.Conn, player *player.Player) *Client {
+func New(log *zap.Logger, conn *net.Conn, player *world.Player) *Client {
 	return &Client{
 		log:      log,
 		conn:     conn,
@@ -30,12 +29,6 @@ func New(log *zap.Logger, conn *net.Conn, player *player.Player) *Client {
 		queue:    server.NewPacketQueue(),
 		handlers: defaultHandlers,
 	}
-}
-
-func (c *Client) Spawn(w *world.World) error {
-	c.SendLogin(w, c.player)
-	w.AddPlayer(c, c.player)
-	return nil
 }
 
 func (c *Client) Start() {
@@ -88,7 +81,7 @@ func (c *Client) startReceive(done func()) {
 }
 
 func (c *Client) AddHandler(id int32, handler packetHandler) { c.handlers[id] = handler }
-func (c *Client) GetPlayer() *player.Player                  { return c.player }
+func (c *Client) GetPlayer() *world.Player                   { return c.player }
 
 var defaultHandlers = []packetHandler{
 	packetid.ServerboundAcceptTeleportation:      nil,

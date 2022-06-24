@@ -5,7 +5,7 @@ import (
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/client"
-	"github.com/go-mc/server/player"
+	"github.com/go-mc/server/world"
 	"time"
 )
 
@@ -14,18 +14,18 @@ type playerList struct {
 	pingList  *server.PlayerList
 }
 
-func (pl *playerList) addPlayer(c *client.Client, p *player.Player) {
+func (pl *playerList) addPlayer(c *client.Client, p *world.Player) {
 	pl.pingList.ClientJoin(c, server.PlayerSample{
-		Name: p.Name(),
-		ID:   p.UUID(),
+		Name: p.Name,
+		ID:   p.UUID,
 	})
 	pl.keepAlive.ClientJoin(c)
 	c.AddHandler(packetid.ServerboundKeepAlive, keepAliveHandler{pl.keepAlive})
-	players := make([]*player.Player, 0, pl.pingList.Len()+1)
+	players := make([]*world.Player, 0, pl.pingList.Len()+1)
 	players = append(players, p)
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		cc := c.(*client.Client)
-		cc.SendPlayerInfoAdd([]*player.Player{p})
+		cc.SendPlayerInfoAdd([]*world.Player{p})
 		players = append(players, cc.GetPlayer())
 	})
 	c.SendPlayerInfoAdd(players)

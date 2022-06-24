@@ -3,7 +3,7 @@ package world
 import (
 	"errors"
 	"github.com/Tnze/go-mc/level"
-	"github.com/go-mc/server/player"
+	"github.com/go-mc/server/world/internal/bvh"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -12,33 +12,36 @@ type World struct {
 	log *zap.Logger
 
 	chunks  map[[2]int32]*LoadedChunk
-	loaders map[Viewer]*loader
+	loaders map[ChunkViewer]*loader
 
-	chunkProvider Provider
+	// playerViews 是一颗BVH树，储存了世界中每个玩家的可视距离碰撞箱，
+	// 该数据结构用于快速判定每个Entity移动时应该向哪些Player发送通知。
+	playerViews playerViewTree
+	players     []*Player
+
+	chunkProvider ChunkProvider
 
 	tickLock sync.Mutex
 }
 
-func New(logger *zap.Logger, provider Provider) (w *World) {
+type playerView struct {
+	EntityViewer
+	*Player
+}
+type playerViewBound = bvh.AABB[float64, bvh.Vec2[float64]]
+type playerViewNode = bvh.Node[float64, playerViewBound, playerView]
+type playerViewTree = bvh.Tree[float64, bvh.AABB[float64, bvh.Vec2[float64]], playerView]
+
+func New(logger *zap.Logger, provider ChunkProvider) (w *World) {
 	w = &World{
 		log:           logger,
 		chunks:        make(map[[2]int32]*LoadedChunk),
-		loaders:       make(map[Viewer]*loader),
+		loaders:       make(map[ChunkViewer]*loader),
 		chunkProvider: provider,
 	}
-	//spawnLoader := NewLoader(w, spawnPoint{[2]int32{0, 0}, 20})
-	//w.loaders[spawnLoader] = nil
 	go w.tickLoop()
 	return
 }
-
-type spawnPoint struct {
-	pos [2]int32
-	r   int32
-}
-
-func (s spawnPoint) ChunkPos() [2]int32 { return s.pos }
-func (s spawnPoint) ChunkRadius() int32 { return s.r }
 
 func (w *World) Name() string {
 	return "minecraft:overworld"
@@ -48,25 +51,38 @@ func (w *World) HashedSeed() [8]byte {
 	return [8]byte{}
 }
 
-func (w *World) AddPlayer(v Viewer, p *player.Player) {
+func (w *World) AddPlayer(v Viewer, p *Player) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
 	w.loaders[v] = NewLoader(p)
+	w.players = append(w.players, p)
+	p.view = w.playerViews.Insert(p.getView(), playerView{v, p})
 }
 
-func (w *World) RemovePlayer(v Viewer) {
+func (w *World) RemovePlayer(v Viewer, p *Player) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
 	w.log.Debug("Remove Player",
 		zap.Int("loader count", len(w.loaders[v].loaded)),
 		zap.Int("world count", len(w.chunks)),
 	)
+	// 从该玩家加载的所有区块中删除该玩家
 	for pos := range w.loaders[v].loaded {
 		if !w.chunks[pos].RemoveViewer(v) {
 			w.log.Panic("viewer is not found in the loaded chunk")
 		}
 	}
 	delete(w.loaders, v)
+	sliceDeleteElem(&w.players, p)
+	// 从实体系统中删除该玩家
+	w.playerViews.Delete(p.view)
+	w.playerViews.Find(
+		bvh.TouchPoint[bvh.Vec2[float64], playerViewBound](p.getPoint()),
+		func(n *playerViewNode) bool {
+			n.Value.ViewRemoveEntities([]int32{p.EntityID})
+			return true
+		},
+	)
 }
 
 func (w *World) loadChunk(pos [2]int32) bool {
@@ -106,11 +122,11 @@ func (w *World) unloadChunk(pos [2]int32) {
 
 type LoadedChunk struct {
 	sync.Mutex
-	viewers []Viewer
+	viewers []ChunkViewer
 	*level.Chunk
 }
 
-func (lc *LoadedChunk) AddViewer(v Viewer) {
+func (lc *LoadedChunk) AddViewer(v ChunkViewer) {
 	lc.Lock()
 	defer lc.Unlock()
 	//for _, v2 := range lc.viewers {
@@ -121,7 +137,7 @@ func (lc *LoadedChunk) AddViewer(v Viewer) {
 	lc.viewers = append(lc.viewers, v)
 }
 
-func (lc *LoadedChunk) RemoveViewer(v Viewer) bool {
+func (lc *LoadedChunk) RemoveViewer(v ChunkViewer) bool {
 	lc.Lock()
 	defer lc.Unlock()
 	for i, v2 := range lc.viewers {
@@ -135,6 +151,14 @@ func (lc *LoadedChunk) RemoveViewer(v Viewer) bool {
 	return false
 }
 
-type Entity interface {
-	ID() int32
+func sliceDeleteElem[E comparable](slice *[]E, v E) bool {
+	for i, v2 := range *slice {
+		if v2 == v {
+			last := len(*slice) - 1
+			(*slice)[i] = (*slice)[last]
+			*slice = (*slice)[:last]
+			return true
+		}
+	}
+	return false
 }

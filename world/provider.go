@@ -1,28 +1,32 @@
 package world
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/save/region"
+	"github.com/Tnze/go-mc/server/auth"
+	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"time"
 )
 
-// Provider implements chunk storage
-type Provider struct {
+// ChunkProvider implements chunk storage
+type ChunkProvider struct {
 	dir     string
 	limiter *rate.Limiter
 }
 
-func NewProvider(dir string) Provider {
-	return Provider{dir: dir, limiter: rate.NewLimiter(rate.Every(time.Millisecond*20), 30)}
+func NewProvider(dir string) ChunkProvider {
+	return ChunkProvider{dir: dir, limiter: rate.NewLimiter(rate.Every(time.Millisecond*20), 30)}
 }
 
-func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
+func (p *ChunkProvider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
 	if !p.limiter.Allow() {
 		return nil, errors.New("reach time limit")
 	}
@@ -59,7 +63,7 @@ func (p *Provider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
 	return c, nil
 }
 
-func (p *Provider) getRegion(rx, rz int) (*region.Region, error) {
+func (p *ChunkProvider) getRegion(rx, rz int) (*region.Region, error) {
 	filename := fmt.Sprintf("r.%d.%d.mca", rx, rz)
 	path := filepath.Join(p.dir, filename)
 	r, err := region.Open(path)
@@ -69,7 +73,7 @@ func (p *Provider) getRegion(rx, rz int) (*region.Region, error) {
 	return r, err
 }
 
-func (p *Provider) PutChunk(pos [2]int32, c *level.Chunk) (err error) {
+func (p *ChunkProvider) PutChunk(pos [2]int32, c *level.Chunk) (err error) {
 	//var chunk save.Chunk
 	//err = level.ChunkToSave(c, &chunk)
 	//if err != nil {
@@ -102,3 +106,51 @@ func (p *Provider) PutChunk(pos [2]int32, c *level.Chunk) (err error) {
 }
 
 var errChunkNotExist = errors.New("ErrChunkNotExist")
+
+type PlayerProvider struct {
+	dir string
+}
+
+func NewPlayerProvider(dir string) PlayerProvider {
+	return PlayerProvider{dir: dir}
+}
+
+func (p *PlayerProvider) GetPlayer(name string, id uuid.UUID, pubKey *auth.PublicKey, properties []auth.Property) (player *Player, errRet error) {
+	f, err := os.Open(filepath.Join(p.dir, id.String()+".dat"))
+	if err != nil {
+		return nil, err
+	}
+	defer func(f *os.File) {
+		err2 := f.Close()
+		if errRet == nil && err2 != nil {
+			errRet = fmt.Errorf("close player data fail: %w", err2)
+		}
+	}(f)
+	r, err := gzip.NewReader(f)
+	if err != nil {
+		return nil, fmt.Errorf("open gzip reader fail: %w", err)
+	}
+	data, err := save.ReadPlayerData(r)
+	if err != nil {
+		return nil, fmt.Errorf("read player data fail: %w", err)
+	}
+	if err := r.Close(); err != nil {
+		return nil, fmt.Errorf("close gzip reader fail: %w", err)
+	}
+	player = &Player{
+		Entity: Entity{
+			EntityID: NewEntityID(),
+			Position: data.Pos,
+			Rotation: data.Rotation,
+		},
+		Name:           name,
+		UUID:           id,
+		PubKey:         pubKey,
+		Properties:     properties,
+		ChunkPos:       [2]int32{int32(data.Pos[0]) >> 5, int32(data.Pos[1]) >> 5},
+		Gamemode:       data.PlayerGameType,
+		EntitiesInView: make(map[int32]*Entity),
+		ViewDistance:   10,
+	}
+	return
+}
