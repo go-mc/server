@@ -22,9 +22,10 @@ type Player struct {
 	EntitiesInView map[int32]*Entity
 	view           *playerViewNode
 
-	nextPos atomic.Value[Position]
-	nextRot atomic.Value[Rotation]
-	latency atomic.Duration
+	nextPos      atomic.Value[Position]
+	nextRot      atomic.Value[Rotation]
+	nextOnGround atomic.Bool
+	latency      atomic.Duration
 }
 
 func (p *Player) ChunkPosition() [2]int32 { return p.ChunkPos }
@@ -34,6 +35,8 @@ func (p *Player) NextPosition() [3]float64         { return p.nextPos.Load() }
 func (p *Player) SetNextPosition(pos [3]float64)   { p.nextPos.Store(pos) }
 func (p *Player) NextRotation() [2]float32         { return p.nextRot.Load() }
 func (p *Player) SetNextRotation(rot [2]float32)   { p.nextRot.Store(rot) }
+func (p *Player) NextOnGround() [2]float32         { return p.nextRot.Load() }
+func (p *Player) SetNextOnGround(onGround bool)    { p.nextOnGround.Store(onGround) }
 func (p *Player) Latency() time.Duration           { return p.latency.Load() }
 func (p *Player) SetLatency(latency time.Duration) { p.latency.Store(latency) }
 

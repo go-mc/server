@@ -73,59 +73,67 @@ func (w *World) subtickUpdatePlayers() {
 	for _, p := range w.players {
 		p.pos0 = p.nextPos.Load()
 		p.rot0 = p.nextRot.Load()
+		p.OnGround = OnGround(p.nextOnGround.Load())
 	}
 }
 
 func (w *World) subtickUpdateEntities() {
 	for _, e := range w.players {
 		// 当实体移动时，向每个能看到它的玩家发送实体移动数据包
-		var sendMove func(viewer EntityViewer)
-		rot := [2]int8{
-			int8(e.rot0[0] * 256 / 360),
-			int8(e.rot0[1] * 256 / 360),
-		}
-		if e.Position != e.pos0 {
-			delta := [3]int16{
+		var delta [3]int16
+		var rot [2]int8
+		if e.Position != e.pos0 { // TODO: 当实体移动距离大于8，改为发送实体传送数据包
+			delta = [3]int16{
 				int16((e.pos0[0] - e.Position[0]) * 32 * 128),
 				int16((e.pos0[1] - e.Position[1]) * 32 * 128),
 				int16((e.pos0[2] - e.Position[2]) * 32 * 128),
 			}
-			e.Position = e.pos0
-			// TODO: 当实体移动距离大于8，改为发送实体传送数据包
-			if e.Rotation != e.rot0 {
-				sendMove = func(viewer EntityViewer) {
-					viewer.ViewMoveEntityPosAndRot(e.EntityID, delta, rot, false)
-				}
-				e.Rotation = e.rot0
-			} else {
-				sendMove = func(viewer EntityViewer) {
-					viewer.ViewMoveEntityPos(e.EntityID, delta, false)
-				}
-			}
-		} else if e.Rotation != e.rot0 {
-			sendMove = func(viewer EntityViewer) {
-				viewer.ViewMoveEntityRot(e.EntityID, rot, false)
-			}
-			e.Rotation = e.rot0
 		}
-		if sendMove != nil {
-			w.playerViews.Find(
-				bvh.TouchPoint[bvh.Vec2[float64], playerViewBound](e.getPoint()),
-				func(n *playerViewNode) bool {
-					if n.Value.Player == e {
-						return true // 不向玩家自己发送自己的移动
-					}
-					// 检查当前实体是否在玩家的显示列表内，如果存在则转发移动数据
-					if _, ok := n.Value.EntitiesInView[e.EntityID]; ok {
-						sendMove(n.Value)
-					} else {
-						n.Value.ViewAddPlayer(e)
-						n.Value.EntitiesInView[e.EntityID] = &e.Entity
-					}
-					return true
-				},
-			)
+		if e.Rotation != e.rot0 {
+			rot = [2]int8{
+				int8(e.rot0[0] * 256 / 360),
+				int8(e.rot0[1] * 256 / 360),
+			}
 		}
+		cond := bvh.TouchPoint[bvh.Vec2[float64], playerViewBound](e.getPoint())
+		var sendMove func(v EntityViewer)
+		switch {
+		case e.Position != e.pos0 && e.Rotation != e.rot0:
+			sendMove = func(v EntityViewer) {
+				v.ViewMoveEntityPosAndRot(e.EntityID, delta, rot, bool(e.OnGround))
+				v.ViewRotateHead(e.EntityID, rot[0])
+			}
+		case e.Position != e.pos0:
+			sendMove = func(v EntityViewer) {
+				v.ViewMoveEntityPos(e.EntityID, delta, bool(e.OnGround))
+			}
+		case e.Rotation != e.rot0:
+			sendMove = func(v EntityViewer) {
+				v.ViewMoveEntityRot(e.EntityID, rot, bool(e.OnGround))
+				v.ViewRotateHead(e.EntityID, rot[0])
+			}
+		default:
+			continue
+		}
+		e.Position = e.pos0
+		e.Rotation = e.rot0
+		w.playerViews.Find(cond,
+			func(n *playerViewNode) bool {
+				if n.Value.Player == e {
+					return true // 不向玩家自己发送自己的移动
+				}
+				// 检查当前实体是否在玩家的显示列表内，如果存在则转发移动数据
+				if _, ok := n.Value.EntitiesInView[e.EntityID]; ok {
+					sendMove(n.Value.EntityViewer)
+				} else {
+					// 否则，将该实体添加到玩家的实体列表
+					// TODO: 处理实体不是玩家的情况
+					n.Value.ViewAddPlayer(e)
+					n.Value.EntitiesInView[e.EntityID] = &e.Entity
+				}
+				return true
+			},
+		)
 	}
 	for _, p := range w.players {
 		p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))

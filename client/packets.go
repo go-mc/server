@@ -160,6 +160,7 @@ func (c *Client) SendMoveEntitiesPosAndRot(eid int32, delta [3]int16, rot [2]int
 		pk.Boolean(onGround),
 	)
 }
+
 func (c *Client) SendMoveEntitiesRot(eid int32, rot [2]int8, onGround bool) {
 	c.sendPacket(
 		packetid.ClientboundMoveEntityRot,
@@ -167,6 +168,14 @@ func (c *Client) SendMoveEntitiesRot(eid int32, rot [2]int8, onGround bool) {
 		pk.Angle(rot[0]),
 		pk.Angle(rot[1]),
 		pk.Boolean(onGround),
+	)
+}
+
+func (c *Client) SendRotateHead(eid int32, yaw int8) {
+	c.sendPacket(
+		packetid.ClientboundRotateHead,
+		pk.VarInt(eid),
+		pk.Angle(yaw),
 	)
 }
 
@@ -204,6 +213,9 @@ func (c *Client) ViewMoveEntityPosAndRot(id int32, delta [3]int16, rot [2]int8, 
 }
 func (c *Client) ViewMoveEntityRot(id int32, rot [2]int8, onGround bool) {
 	c.SendMoveEntitiesRot(id, rot, onGround)
+}
+func (c *Client) ViewRotateHead(id int32, yaw int8) {
+	c.SendRotateHead(id, yaw)
 }
 func (c *Client) ViewTeleportEntity(id int32, pos [3]float64, rot [2]float32, onGround bool) {
 	c.SendTeleportEntity(id, pos, rot, onGround)
