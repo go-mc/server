@@ -17,15 +17,17 @@ type Player struct {
 
 	ChunkPos     [2]int32
 	ViewDistance int32
-	Gamemode     int32
 
+	Gamemode       int32
 	EntitiesInView map[int32]*Entity
 	view           *playerViewNode
+	teleport       *TeleportRequest
 
-	nextPos      atomic.Value[Position]
-	nextRot      atomic.Value[Rotation]
-	nextOnGround atomic.Bool
-	latency      atomic.Duration
+	nextPos          atomic.Value[Position]
+	nextRot          atomic.Value[Rotation]
+	nextOnGround     atomic.Bool
+	latency          atomic.Duration
+	acceptTeleportID atomic.Int32
 }
 
 func (p *Player) ChunkPosition() [2]int32 { return p.ChunkPos }
@@ -39,6 +41,7 @@ func (p *Player) NextOnGround() [2]float32         { return p.nextRot.Load() }
 func (p *Player) SetNextOnGround(onGround bool)    { p.nextOnGround.Store(onGround) }
 func (p *Player) Latency() time.Duration           { return p.latency.Load() }
 func (p *Player) SetLatency(latency time.Duration) { p.latency.Store(latency) }
+func (p *Player) AcceptTeleport(id int32)          { p.acceptTeleportID.Store(id) }
 
 // getView 根据玩家Position和ViewDistance计算玩家可视距离包围盒
 func (p *Player) getView() playerViewBound {
@@ -47,4 +50,10 @@ func (p *Player) getView() playerViewBound {
 		Upper: bvh.Vec2[float64]{p.Position[0] + viewDistance, p.Position[2] + viewDistance},
 		Lower: bvh.Vec2[float64]{p.Position[0] - viewDistance, p.Position[2] - viewDistance},
 	}
+}
+
+type TeleportRequest struct {
+	ID int32
+	Position
+	Rotation
 }

@@ -1,13 +1,15 @@
 package world
 
 import (
+	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/level"
 )
 
-type Viewer interface {
+type Client interface {
 	ChunkViewer
 	EntityViewer
-	//ViewEntityMove()
+	SendDisconnect(reason chat.Message)
+	SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32)
 }
 
 type ChunkViewer interface {

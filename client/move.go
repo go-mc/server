@@ -1,12 +1,26 @@
 package client
 
-import pk "github.com/Tnze/go-mc/net/packet"
+import (
+	"bytes"
+	pk "github.com/Tnze/go-mc/net/packet"
+)
 
+type clientAcceptTeleportation struct{}
 type clientMovePlayerPos struct{}
 type clientMovePlayerPosRot struct{}
 type clientMovePlayerRot struct{}
 type clientMovePlayerStatusOnly struct{}
 type clientMoveVehicle struct{}
+
+func (clientAcceptTeleportation) Handle(p pk.Packet, c *Client) error {
+	var TeleportID pk.VarInt
+	_, err := TeleportID.ReadFrom(bytes.NewReader(p.Data))
+	if err != nil {
+		return err
+	}
+	c.player.AcceptTeleport(int32(TeleportID))
+	return nil
+}
 
 func (clientMovePlayerPos) Handle(p pk.Packet, c *Client) error {
 	var X, FeetY, Z pk.Double

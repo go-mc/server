@@ -1,7 +1,10 @@
 package world
 
 import (
+	"github.com/Tnze/go-mc/chat"
 	"github.com/go-mc/server/world/internal/bvh"
+	"go.uber.org/zap"
+	"math"
 	"time"
 )
 
@@ -32,12 +35,16 @@ func (w *World) subtickChunkLoad() {
 		}
 	}
 	// 由于w.loaders的遍历顺序是随机的，所以每个loader每次都有相同的机会，相对比较公平
+LoadChunk:
 	for viewer, loader := range w.loaders {
 		loader.calcLoadingQueue()
 		for _, pos := range loader.loadQueue {
+			if !loader.limiter.Allow() { // We reach the player limit. skip
+				break
+			}
 			if _, ok := w.chunks[pos]; !ok {
 				if !w.loadChunk(pos) {
-					continue
+					break LoadChunk // We reach the global limit. skip
 				}
 			}
 			loader.loaded[pos] = struct{}{}
@@ -70,14 +77,44 @@ func (w *World) subtickChunkLoad() {
 }
 
 func (w *World) subtickUpdatePlayers() {
-	for _, p := range w.players {
-		p.pos0 = p.nextPos.Load()
-		p.rot0 = p.nextRot.Load()
-		p.OnGround = OnGround(p.nextOnGround.Load())
+	for c, p := range w.players {
+		if p.teleport != nil {
+			if p.acceptTeleportID.Load() == p.teleport.ID {
+				p.pos0 = p.teleport.Position
+				p.rot0 = p.teleport.Rotation
+				p.teleport = nil
+			}
+		} else {
+			pos := p.nextPos.Load()
+			delta := [3]float64{
+				pos[0] - p.Position[0],
+				pos[1] - p.Position[1],
+				pos[2] - p.Position[2],
+			}
+			distance := math.Sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2])
+			if distance > 100 {
+				w.log.Info("Player move too quickly", zap.Float64("delta", distance))
+				// You moved too quickly :( (Hacking?)
+				teleportID := c.SendPlayerPosition(p.Position, p.Rotation, true)
+				p.teleport = &TeleportRequest{
+					ID:       teleportID,
+					Position: p.Position,
+					Rotation: p.Rotation,
+				}
+			} else if pos.IsValid() {
+				p.pos0 = pos
+				p.rot0 = p.nextRot.Load()
+				p.OnGround = OnGround(p.nextOnGround.Load())
+			} else {
+				w.log.Info("Player move invalid", zap.Float64("x", pos[0]), zap.Float64("y", pos[1]), zap.Float64("z", pos[2]))
+				c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.invalid_player_movement"))
+			}
+		}
 	}
 }
 
 func (w *World) subtickUpdateEntities() {
+	// TODO: 这里本来应该遍历实体列表，但是目前只有玩家是实体
 	for _, e := range w.players {
 		// 当实体移动时，向每个能看到它的玩家发送实体移动数据包
 		var delta [3]int16
@@ -135,6 +172,7 @@ func (w *World) subtickUpdateEntities() {
 			},
 		)
 	}
+	// 从每个玩家的实体列表中删除不再在范围内的实体
 	for _, p := range w.players {
 		p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
 		for id, e := range p.EntitiesInView {

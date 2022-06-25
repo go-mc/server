@@ -30,7 +30,7 @@ type Game struct {
 }
 
 func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game {
-	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"))
+	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"), config.ChunkLoadingLimiter.Limiter())
 	keepAlive := server.NewKeepAlive()
 	pl := playerList{pingList: pingList, keepAlive: keepAlive}
 	keepAlive.AddPlayerDelayUpdateHandler(func(c server.KeepAliveClient, latency time.Duration) {
@@ -91,13 +91,13 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 
 	joinMsg := chat.TranslateMsg("multiplayer.player.joined", chat.Text(p.Name)).SetColor(chat.Yellow)
 	leftMsg := chat.TranslateMsg("multiplayer.player.left", chat.Text(p.Name)).SetColor(chat.Yellow)
-	g.globalChat.broadcastSystemChat(joinMsg, client.System)
-	defer g.globalChat.broadcastSystemChat(leftMsg, client.System)
+	g.globalChat.broadcastSystemChat(joinMsg, chat.System)
+	defer g.globalChat.broadcastSystemChat(leftMsg, chat.System)
 
 	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
 
 	c.SendLogin(g.overworld, p)
-	g.overworld.AddPlayer(c, p)
+	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)
 
 	c.Start()

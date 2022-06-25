@@ -7,6 +7,7 @@ import (
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
+	"github.com/df-mc/atomic"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
 	"time"
@@ -192,6 +193,24 @@ func (c *Client) SendTeleportEntity(eid int32, pos [3]float64, rot [2]float32, o
 	)
 }
 
+var teleportCounter atomic.Int32
+
+func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32) {
+	teleportID = teleportCounter.Inc()
+	c.sendPacket(
+		packetid.ClientboundPlayerPosition,
+		pk.Double(pos[0]),
+		pk.Double(pos[1]),
+		pk.Double(pos[2]),
+		pk.Float(rot[0]),
+		pk.Float(rot[1]),
+		pk.Byte(0), // Absolute
+		pk.VarInt(teleportID),
+		pk.Boolean(dismountVehicle),
+	)
+	return
+}
+
 func (c *Client) SendRemoveEntities(entityIDs []int32) {
 	c.sendPacket(
 		packetid.ClientboundRemoveEntities,
@@ -199,24 +218,11 @@ func (c *Client) SendRemoveEntities(entityIDs []int32) {
 	)
 }
 
-type ChatType int32
-
-const (
-	Chat ChatType = iota
-	System
-	GameInfo
-	SayCommand
-	MsgCommand
-	TeamMsgCommand
-	EmoteCommand
-	TellrawCommand
-)
-
-func (c *Client) SendSystemChat(msg chat.Message, typeID ChatType) {
+func (c *Client) SendSystemChat(msg chat.Message, typeID chat.Type) {
 	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.VarInt(typeID))
 }
 
-func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *chat.Message, typeID ChatType, timestamp int64, salt int64, signature []byte) {
+func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *chat.Message, typeID chat.Type, timestamp int64, salt int64, signature []byte) {
 	c.sendPacket(packetid.ClientboundPlayerChat,
 		chat.Text(plain),
 		pk.Boolean(message != nil),

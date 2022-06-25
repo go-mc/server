@@ -13,7 +13,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 // ChunkProvider implements chunk storage
@@ -22,8 +21,8 @@ type ChunkProvider struct {
 	limiter *rate.Limiter
 }
 
-func NewProvider(dir string) ChunkProvider {
-	return ChunkProvider{dir: dir, limiter: rate.NewLimiter(rate.Every(time.Millisecond*20), 30)}
+func NewProvider(dir string, limiter *rate.Limiter) ChunkProvider {
+	return ChunkProvider{dir: dir, limiter: limiter}
 }
 
 func (p *ChunkProvider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {

@@ -14,7 +14,7 @@ type globalChat struct {
 	players *playerList
 }
 
-func (g *globalChat) broadcastSystemChat(msg chat.Message, typeID client.ChatType) {
+func (g *globalChat) broadcastSystemChat(msg chat.Message, typeID chat.Type) {
 	g.log.Info("System message", zap.String("chat", msg.ClearString()), zap.Int32("type", int32(typeID)))
 	g.players.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendSystemChat(msg, typeID)
@@ -46,7 +46,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 			player,
 			string(message),
 			&unsignedMsg,
-			client.Chat,
+			chat.Chat,
 			int64(timestamp),
 			int64(salt),
 			signature,

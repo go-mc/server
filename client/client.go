@@ -84,7 +84,7 @@ func (c *Client) AddHandler(id int32, handler packetHandler) { c.handlers[id] = 
 func (c *Client) GetPlayer() *world.Player                   { return c.player }
 
 var defaultHandlers = []packetHandler{
-	packetid.ServerboundAcceptTeleportation:      nil,
+	packetid.ServerboundAcceptTeleportation:      clientAcceptTeleportation{},
 	packetid.ServerboundBlockEntityTagQuery:      nil,
 	packetid.ServerboundChangeDifficulty:         nil,
 	packetid.ServerboundChatCommand:              nil,

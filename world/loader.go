@@ -1,6 +1,7 @@
 package world
 
 import (
+	"golang.org/x/time/rate"
 	"math"
 	"sort"
 )
@@ -12,6 +13,7 @@ type loader struct {
 	loaded      map[[2]int32]struct{}
 	loadQueue   [][2]int32
 	unloadQueue [][2]int32
+	limiter     *rate.Limiter
 }
 
 type loaderSource interface {
@@ -19,10 +21,11 @@ type loaderSource interface {
 	ChunkRadius() int32
 }
 
-func NewLoader(source loaderSource) (l *loader) {
+func NewLoader(source loaderSource, limiter *rate.Limiter) (l *loader) {
 	l = &loader{
 		loaderSource: source,
 		loaded:       make(map[[2]int32]struct{}),
+		limiter:      limiter,
 	}
 	l.calcLoadingQueue()
 	return

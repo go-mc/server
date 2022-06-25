@@ -5,6 +5,7 @@ import (
 	"github.com/Tnze/go-mc/level"
 	"github.com/go-mc/server/world/internal/bvh"
 	"go.uber.org/zap"
+	"golang.org/x/time/rate"
 	"sync"
 )
 
@@ -17,7 +18,7 @@ type World struct {
 	// playerViews 是一颗BVH树，储存了世界中每个玩家的可视距离碰撞箱，
 	// 该数据结构用于快速判定每个Entity移动时应该向哪些Player发送通知。
 	playerViews playerViewTree
-	players     []*Player
+	players     map[Client]*Player
 
 	chunkProvider ChunkProvider
 
@@ -37,6 +38,7 @@ func New(logger *zap.Logger, provider ChunkProvider) (w *World) {
 		log:           logger,
 		chunks:        make(map[[2]int32]*LoadedChunk),
 		loaders:       make(map[ChunkViewer]*loader),
+		players:       make(map[Client]*Player),
 		chunkProvider: provider,
 	}
 	go w.tickLoop()
@@ -51,29 +53,29 @@ func (w *World) HashedSeed() [8]byte {
 	return [8]byte{}
 }
 
-func (w *World) AddPlayer(v Viewer, p *Player) {
+func (w *World) AddPlayer(c Client, p *Player, limiter *rate.Limiter) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
-	w.loaders[v] = NewLoader(p)
-	w.players = append(w.players, p)
-	p.view = w.playerViews.Insert(p.getView(), playerView{v, p})
+	w.loaders[c] = NewLoader(p, limiter)
+	w.players[c] = p
+	p.view = w.playerViews.Insert(p.getView(), playerView{c, p})
 }
 
-func (w *World) RemovePlayer(v Viewer, p *Player) {
+func (w *World) RemovePlayer(c Client, p *Player) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
 	w.log.Debug("Remove Player",
-		zap.Int("loader count", len(w.loaders[v].loaded)),
+		zap.Int("loader count", len(w.loaders[c].loaded)),
 		zap.Int("world count", len(w.chunks)),
 	)
 	// 从该玩家加载的所有区块中删除该玩家
-	for pos := range w.loaders[v].loaded {
-		if !w.chunks[pos].RemoveViewer(v) {
+	for pos := range w.loaders[c].loaded {
+		if !w.chunks[pos].RemoveViewer(c) {
 			w.log.Panic("viewer is not found in the loaded chunk")
 		}
 	}
-	delete(w.loaders, v)
-	sliceDeleteElem(&w.players, p)
+	delete(w.loaders, c)
+	delete(w.players, c)
 	// 从实体系统中删除该玩家
 	w.playerViews.Delete(p.view)
 	w.playerViews.Find(
