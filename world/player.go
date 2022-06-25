@@ -3,7 +3,6 @@ package world
 import (
 	"github.com/Tnze/go-mc/server/auth"
 	"github.com/df-mc/atomic"
-	"github.com/go-mc/server/world/internal/bvh"
 	"github.com/google/uuid"
 	"time"
 )
@@ -44,11 +43,11 @@ func (p *Player) SetLatency(latency time.Duration) { p.latency.Store(latency) }
 func (p *Player) AcceptTeleport(id int32)          { p.acceptTeleportID.Store(id) }
 
 // getView 根据玩家Position和ViewDistance计算玩家可视距离包围盒
-func (p *Player) getView() playerViewBound {
+func (p *Player) getView() aabb3d {
 	viewDistance := float64(p.ViewDistance) * 16 // ViewDistance单位是1 Chunk（16 Block）
-	return playerViewBound{
-		Upper: bvh.Vec2[float64]{p.Position[0] + viewDistance, p.Position[2] + viewDistance},
-		Lower: bvh.Vec2[float64]{p.Position[0] - viewDistance, p.Position[2] - viewDistance},
+	return aabb3d{
+		Upper: vec3d{p.Position[0] + viewDistance, p.Position[1] + viewDistance, p.Position[2] + viewDistance},
+		Lower: vec3d{p.Position[0] - viewDistance, p.Position[1] - viewDistance, p.Position[2] - viewDistance},
 	}
 }
 

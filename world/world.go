@@ -29,9 +29,10 @@ type playerView struct {
 	EntityViewer
 	*Player
 }
-type playerViewBound = bvh.AABB[float64, bvh.Vec2[float64]]
-type playerViewNode = bvh.Node[float64, playerViewBound, playerView]
-type playerViewTree = bvh.Tree[float64, bvh.AABB[float64, bvh.Vec2[float64]], playerView]
+type vec3d = bvh.Vec3[float64]
+type aabb3d = bvh.AABB[float64, vec3d]
+type playerViewNode = bvh.Node[float64, aabb3d, playerView]
+type playerViewTree = bvh.Tree[float64, aabb3d, playerView]
 
 func New(logger *zap.Logger, provider ChunkProvider) (w *World) {
 	w = &World{
@@ -79,9 +80,10 @@ func (w *World) RemovePlayer(c Client, p *Player) {
 	// 从实体系统中删除该玩家
 	w.playerViews.Delete(p.view)
 	w.playerViews.Find(
-		bvh.TouchPoint[bvh.Vec2[float64], playerViewBound](p.getPoint()),
+		bvh.TouchPoint[vec3d, aabb3d](bvh.Vec3[float64](p.Position)),
 		func(n *playerViewNode) bool {
 			n.Value.ViewRemoveEntities([]int32{p.EntityID})
+			delete(n.Value.EntitiesInView, p.EntityID)
 			return true
 		},
 	)
@@ -147,18 +149,6 @@ func (lc *LoadedChunk) RemoveViewer(v ChunkViewer) bool {
 			last := len(lc.viewers) - 1
 			lc.viewers[i] = lc.viewers[last]
 			lc.viewers = lc.viewers[:last]
-			return true
-		}
-	}
-	return false
-}
-
-func sliceDeleteElem[E comparable](slice *[]E, v E) bool {
-	for i, v2 := range *slice {
-		if v2 == v {
-			last := len(*slice) - 1
-			(*slice)[i] = (*slice)[last]
-			*slice = (*slice)[:last]
 			return true
 		}
 	}

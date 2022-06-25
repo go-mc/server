@@ -86,17 +86,18 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	logger.Info("Player join", zap.Int32("eid", p.EntityID))
 	defer logger.Info("Player left")
 
-	g.playerList.addPlayer(c, p)
-	defer g.playerList.removePlayer(c)
-
 	joinMsg := chat.TranslateMsg("multiplayer.player.joined", chat.Text(p.Name)).SetColor(chat.Yellow)
 	leftMsg := chat.TranslateMsg("multiplayer.player.left", chat.Text(p.Name)).SetColor(chat.Yellow)
 	g.globalChat.broadcastSystemChat(joinMsg, chat.System)
 	defer g.globalChat.broadcastSystemChat(leftMsg, chat.System)
 
+	g.playerList.addPlayer(c, p)
+	defer g.playerList.removePlayer(c)
+
 	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
 
 	c.SendLogin(g.overworld, p)
+	c.SendPlayerPosition(p.Position, p.Rotation, true)
 	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)
 

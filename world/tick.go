@@ -78,6 +78,15 @@ LoadChunk:
 
 func (w *World) subtickUpdatePlayers() {
 	for c, p := range w.players {
+		// 更新玩家的可视范围
+		p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
+		// 从每个玩家的实体列表中删除不再在范围内的实体
+		for id, e := range p.EntitiesInView {
+			if !p.view.Box.WithIn(vec3d(e.Position)) {
+				delete(p.EntitiesInView, id) // 从正在遍历的map中删除元素应该是安全的
+				p.view.Value.ViewRemoveEntities([]int32{id})
+			}
+		}
 		if p.teleport != nil {
 			if p.acceptTeleportID.Load() == p.teleport.ID {
 				p.pos0 = p.teleport.Position
@@ -132,7 +141,21 @@ func (w *World) subtickUpdateEntities() {
 				int8(e.rot0[1] * 256 / 360),
 			}
 		}
-		cond := bvh.TouchPoint[bvh.Vec2[float64], playerViewBound](e.getPoint())
+		cond := bvh.TouchPoint[vec3d, aabb3d](vec3d(e.Position))
+		w.playerViews.Find(cond,
+			func(n *playerViewNode) bool {
+				if n.Value.Player == e {
+					return true // 不向玩家自己发送自己
+				}
+				// 检查当前实体是否在玩家的显示列表内，如果存在则转发移动数据
+				if _, ok := n.Value.EntitiesInView[e.EntityID]; !ok {
+					// 将该实体添加到玩家的实体列表
+					n.Value.ViewAddPlayer(e)
+					n.Value.EntitiesInView[e.EntityID] = &e.Entity
+				}
+				return true
+			},
+		)
 		var sendMove func(v EntityViewer)
 		switch {
 		case e.Position != e.pos0 && e.Rotation != e.rot0:
@@ -171,15 +194,5 @@ func (w *World) subtickUpdateEntities() {
 				return true
 			},
 		)
-	}
-	// 从每个玩家的实体列表中删除不再在范围内的实体
-	for _, p := range w.players {
-		p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
-		for id, e := range p.EntitiesInView {
-			if !p.view.Box.WithIn(e.getPoint()) {
-				delete(p.EntitiesInView, id) // 从正在遍历的map中删除元素应该是安全的
-				p.view.Value.ViewRemoveEntities([]int32{id})
-			}
-		}
 	}
 }
