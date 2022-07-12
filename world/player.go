@@ -42,9 +42,9 @@ func (p *Player) Latency() time.Duration           { return p.latency.Load() }
 func (p *Player) SetLatency(latency time.Duration) { p.latency.Store(latency) }
 func (p *Player) AcceptTeleport(id int32)          { p.acceptTeleportID.Store(id) }
 
-// getView 根据玩家Position和ViewDistance计算玩家可视距离包围盒
+// getView calculate the visual range enclosure with Position and ViewDistance of a player.
 func (p *Player) getView() aabb3d {
-	viewDistance := float64(p.ViewDistance) * 16 // ViewDistance单位是1 Chunk（16 Block）
+	viewDistance := float64(p.ViewDistance) * 16 // the unit of ViewDistance is 1 Chunk（16 Block）
 	return aabb3d{
 		Upper: vec3d{p.Position[0] + viewDistance, p.Position[1] + viewDistance, p.Position[2] + viewDistance},
 		Lower: vec3d{p.Position[0] - viewDistance, p.Position[1] - viewDistance, p.Position[2] - viewDistance},
