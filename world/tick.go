@@ -34,7 +34,7 @@ func (w *World) subtickChunkLoad() {
 			int32(p.Position[2]) >> 5,
 		}
 	}
-	// 由于w.loaders的遍历顺序是随机的，所以每个loader每次都有相同的机会，相对比较公平
+	// because of the random traversal order of w.loaders,every loader has the same opportunity,so it's relatively fair.
 LoadChunk:
 	for viewer, loader := range w.loaders {
 		loader.calcLoadingQueue()
@@ -78,12 +78,12 @@ LoadChunk:
 
 func (w *World) subtickUpdatePlayers() {
 	for c, p := range w.players {
-		// 更新玩家的可视范围
+		// update the range of visual.
 		p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
-		// 从每个玩家的实体列表中删除不再在范围内的实体
+		// delete entities that not in range from entities lists of each player.
 		for id, e := range p.EntitiesInView {
 			if !p.view.Box.WithIn(vec3d(e.Position)) {
-				delete(p.EntitiesInView, id) // 从正在遍历的map中删除元素应该是安全的
+				delete(p.EntitiesInView, id) // it should be safe to delete element from a map being traversed.
 				p.view.Value.ViewRemoveEntities([]int32{id})
 			}
 		}
@@ -123,12 +123,12 @@ func (w *World) subtickUpdatePlayers() {
 }
 
 func (w *World) subtickUpdateEntities() {
-	// TODO: 这里本来应该遍历实体列表，但是目前只有玩家是实体
+	// TODO: entity list should be traversed here, but players are the only entities now.
 	for _, e := range w.players {
-		// 当实体移动时，向每个能看到它的玩家发送实体移动数据包
+		// sending Update Entity Position pack to every player who can see it, when it moves.
 		var delta [3]int16
 		var rot [2]int8
-		if e.Position != e.pos0 { // TODO: 当实体移动距离大于8，改为发送实体传送数据包
+		if e.Position != e.pos0 { // TODO: send Teleport Entity pack instead when moving distance is greater than 8.
 			delta = [3]int16{
 				int16((e.pos0[0] - e.Position[0]) * 32 * 128),
 				int16((e.pos0[1] - e.Position[1]) * 32 * 128),
@@ -145,11 +145,11 @@ func (w *World) subtickUpdateEntities() {
 		w.playerViews.Find(cond,
 			func(n *playerViewNode) bool {
 				if n.Value.Player == e {
-					return true // 不向玩家自己发送自己
+					return true // don't send the player self to the player
 				}
-				// 检查当前实体是否在玩家的显示列表内，如果存在则转发移动数据
+				// check if current entity is in range of player visual. if so, moving data will be forwarded.
 				if _, ok := n.Value.EntitiesInView[e.EntityID]; !ok {
-					// 将该实体添加到玩家的实体列表
+					// add the entity to the entities list of the player
 					n.Value.ViewAddPlayer(e)
 					n.Value.EntitiesInView[e.EntityID] = &e.Entity
 				}
@@ -180,14 +180,14 @@ func (w *World) subtickUpdateEntities() {
 		w.playerViews.Find(cond,
 			func(n *playerViewNode) bool {
 				if n.Value.Player == e {
-					return true // 不向玩家自己发送自己的移动
+					return true // not sending self movements to player self.
 				}
-				// 检查当前实体是否在玩家的显示列表内，如果存在则转发移动数据
+				// check if current entity is in the player visual entities list. if so, moving data will be forwarded.
 				if _, ok := n.Value.EntitiesInView[e.EntityID]; ok {
 					sendMove(n.Value.EntityViewer)
 				} else {
-					// 否则，将该实体添加到玩家的实体列表
-					// TODO: 处理实体不是玩家的情况
+					// or the entity will be add to the entities list of the player
+					// TODO: deal with the situation that the entity is not a player
 					n.Value.ViewAddPlayer(e)
 					n.Value.EntitiesInView[e.EntityID] = &e.Entity
 				}

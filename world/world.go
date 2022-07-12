@@ -15,8 +15,8 @@ type World struct {
 	chunks  map[[2]int32]*LoadedChunk
 	loaders map[ChunkViewer]*loader
 
-	// playerViews 是一颗BVH树，储存了世界中每个玩家的可视距离碰撞箱，
-	// 该数据结构用于快速判定每个Entity移动时应该向哪些Player发送通知。
+	// playerViews is a BVH tree，storing the visual range collision boxes of each player.
+	// the data structure is used to determine quickly which players to send notify when entity moves.
 	playerViews playerViewTree
 	players     map[Client]*Player
 
@@ -69,7 +69,7 @@ func (w *World) RemovePlayer(c Client, p *Player) {
 		zap.Int("loader count", len(w.loaders[c].loaded)),
 		zap.Int("world count", len(w.chunks)),
 	)
-	// 从该玩家加载的所有区块中删除该玩家
+	// delete the player from all chunks which load the player.
 	for pos := range w.loaders[c].loaded {
 		if !w.chunks[pos].RemoveViewer(c) {
 			w.log.Panic("viewer is not found in the loaded chunk")
@@ -77,7 +77,7 @@ func (w *World) RemovePlayer(c Client, p *Player) {
 	}
 	delete(w.loaders, c)
 	delete(w.players, c)
-	// 从实体系统中删除该玩家
+	// delete the player from entity system.
 	w.playerViews.Delete(p.view)
 	w.playerViews.Find(
 		bvh.TouchPoint[vec3d, aabb3d](bvh.Vec3[float64](p.Position)),
