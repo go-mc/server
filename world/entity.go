@@ -2,14 +2,13 @@ package world
 
 import (
 	"math"
-
-	"github.com/df-mc/atomic"
+	"sync/atomic"
 )
 
 var entityCounter atomic.Int32
 
 func NewEntityID() int32 {
-	return entityCounter.Inc()
+	return entityCounter.Add(1)
 }
 
 type Entity struct {

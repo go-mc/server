@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/binary"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
-	"github.com/df-mc/atomic"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
 )
@@ -199,7 +199,7 @@ func (c *Client) SendTeleportEntity(eid int32, pos [3]float64, rot [2]float32, o
 var teleportCounter atomic.Int32
 
 func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32) {
-	teleportID = teleportCounter.Inc()
+	teleportID = teleportCounter.Add(1)
 	c.sendPacket(
 		packetid.ClientboundPlayerPosition,
 		pk.Double(pos[0]),

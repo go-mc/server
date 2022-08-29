@@ -1,10 +1,11 @@
 package world
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/Tnze/go-mc/server/auth"
-	"github.com/df-mc/atomic"
+	dfatomic "github.com/df-mc/atomic"
 	"github.com/google/uuid"
 )
 
@@ -23,10 +24,10 @@ type Player struct {
 	view           *playerViewNode
 	teleport       *TeleportRequest
 
-	nextPos          atomic.Value[Position]
-	nextRot          atomic.Value[Rotation]
+	nextPos          dfatomic.Value[Position]
+	nextRot          dfatomic.Value[Rotation]
 	nextOnGround     atomic.Bool
-	latency          atomic.Duration
+	latency          dfatomic.Duration
 	acceptTeleportID atomic.Int32
 }
 
