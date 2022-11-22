@@ -41,14 +41,14 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 	})
 	go keepAlive.Run(context.TODO())
 	return &Game{
-		log: log,
+		log: log.Named("game"),
 
 		config: config,
 
 		playerProvider: world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata")),
 		overworld:      world.New(log.Named("overworld"), overworld),
 
-		globalChat: globalChat{log.Named("Chat"), &pl},
+		globalChat: globalChat{log.Named("chat"), &pl},
 		playerList: &pl,
 	}
 }

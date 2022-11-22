@@ -102,6 +102,7 @@ func (w *World) loadChunk(pos [2]int32) bool {
 		c = level.EmptyChunk(24)
 		c.Status = level.StatusFull
 	} else if err != nil {
+		logger.Error("GetChunk error", zap.Error(err))
 		return false
 	}
 	w.chunks[pos] = &LoadedChunk{Chunk: c}
