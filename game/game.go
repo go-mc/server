@@ -74,7 +74,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 			PubKey:         profilePubKey,
 			Properties:     properties,
 			Gamemode:       1,
-			ChunkPos:       [2]int32{48 >> 5, 35 >> 5},
+			ChunkPos:       [3]int32{48 >> 4, 64 >> 4, 35 >> 4},
 			EntitiesInView: make(map[int32]*world.Entity),
 			ViewDistance:   10,
 		}

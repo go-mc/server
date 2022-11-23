@@ -16,7 +16,7 @@ type Player struct {
 	PubKey     *auth.PublicKey
 	Properties []auth.Property
 
-	ChunkPos     [2]int32
+	ChunkPos     [3]int32
 	ViewDistance int32
 
 	Gamemode       int32
@@ -31,7 +31,7 @@ type Player struct {
 	acceptTeleportID atomic.Int32
 }
 
-func (p *Player) ChunkPosition() [2]int32 { return p.ChunkPos }
+func (p *Player) ChunkPosition() [2]int32 { return [2]int32{p.ChunkPos[0], p.ChunkPos[2]} }
 func (p *Player) ChunkRadius() int32      { return p.ViewDistance }
 
 func (p *Player) NextPosition() [3]float64         { return p.nextPos.Load() }

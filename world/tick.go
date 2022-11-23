@@ -30,13 +30,13 @@ func (w *World) tick(n uint) {
 
 func (w *World) subtickChunkLoad() {
 	for c, p := range w.players {
-		newChunkPos := [2]int32{
-			int32(p.Position[0]) >> 5,
-			int32(p.Position[2]) >> 5,
-		}
-		if newChunkPos != p.ChunkPos {
+		x := int32(p.Position[0]) >> 4
+		y := int32(p.Position[1]) >> 4
+		z := int32(p.Position[2]) >> 4
+		if newChunkPos := [3]int32{x, y, z}; newChunkPos != p.ChunkPos {
 			p.ChunkPos = newChunkPos
-			c.SendSetChunkCacheCenter(newChunkPos)
+			w.log.Debug("SendSetChunkCacheCenter", zap.Int32("x", x), zap.Int32("z", z))
+			c.SendSetChunkCacheCenter([2]int32{x, z})
 		}
 	}
 	// because of the random traversal order of w.loaders,every loader has the same opportunity,so it's relatively fair.
