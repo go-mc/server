@@ -1,11 +1,12 @@
 package world
 
 import (
+	"math"
+	"time"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/go-mc/server/world/internal/bvh"
 	"go.uber.org/zap"
-	"math"
-	"time"
 )
 
 func (w *World) tickLoop() {
@@ -28,10 +29,14 @@ func (w *World) tick(n uint) {
 }
 
 func (w *World) subtickChunkLoad() {
-	for _, p := range w.players {
-		p.ChunkPos = [2]int32{
+	for c, p := range w.players {
+		newChunkPos := [2]int32{
 			int32(p.Position[0]) >> 5,
 			int32(p.Position[2]) >> 5,
+		}
+		if newChunkPos != p.ChunkPos {
+			p.ChunkPos = newChunkPos
+			c.SendSetChunkCacheCenter(newChunkPos)
 		}
 	}
 	// because of the random traversal order of w.loaders,every loader has the same opportunity,so it's relatively fair.

@@ -3,6 +3,9 @@ package client
 import (
 	"bytes"
 	"encoding/binary"
+	"time"
+	"unsafe"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
@@ -10,8 +13,6 @@ import (
 	"github.com/df-mc/atomic"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
-	"time"
-	"unsafe"
 )
 
 func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) {
@@ -126,6 +127,7 @@ func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk)
 func (c *Client) SendForgetLevelChunk(pos level.ChunkPos) {
 	c.sendPacket(packetid.ClientboundForgetLevelChunk, pos)
 }
+
 func (c *Client) SendAddPlayer(p *world.Player) {
 	c.sendPacket(
 		packetid.ClientboundAddPlayer,
@@ -149,6 +151,7 @@ func (c *Client) SendMoveEntitiesPos(eid int32, delta [3]int16, onGround bool) {
 		pk.Boolean(onGround),
 	)
 }
+
 func (c *Client) SendMoveEntitiesPosAndRot(eid int32, delta [3]int16, rot [2]int8, onGround bool) {
 	c.sendPacket(
 		packetid.ClientboundMoveEntityPosRot,
@@ -237,6 +240,14 @@ func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *cha
 	)
 }
 
+func (c *Client) SendSetChunkCacheCenter(chunkPos [2]int32) {
+	c.sendPacket(
+		packetid.ClientboundSetChunkCacheCenter,
+		pk.VarInt(chunkPos[0]),
+		pk.VarInt(chunkPos[1]),
+	)
+}
+
 func (c *Client) ViewChunkLoad(pos level.ChunkPos, chunk *level.Chunk) {
 	c.SendLevelChunkWithLight(pos, chunk)
 }
@@ -246,15 +257,19 @@ func (c *Client) ViewRemoveEntities(entityIDs []int32) { c.SendRemoveEntities(en
 func (c *Client) ViewMoveEntityPos(id int32, delta [3]int16, onGround bool) {
 	c.SendMoveEntitiesPos(id, delta, onGround)
 }
+
 func (c *Client) ViewMoveEntityPosAndRot(id int32, delta [3]int16, rot [2]int8, onGround bool) {
 	c.SendMoveEntitiesPosAndRot(id, delta, rot, onGround)
 }
+
 func (c *Client) ViewMoveEntityRot(id int32, rot [2]int8, onGround bool) {
 	c.SendMoveEntitiesRot(id, rot, onGround)
 }
+
 func (c *Client) ViewRotateHead(id int32, yaw int8) {
 	c.SendRotateHead(id, yaw)
 }
+
 func (c *Client) ViewTeleportEntity(id int32, pos [3]float64, rot [2]float32, onGround bool) {
 	c.SendTeleportEntity(id, pos, rot, onGround)
 }
