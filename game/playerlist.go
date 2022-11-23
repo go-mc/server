@@ -1,12 +1,13 @@
 package game
 
 import (
+	"time"
+
 	"github.com/Tnze/go-mc/data/packetid"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/client"
 	"github.com/go-mc/server/world"
-	"time"
 )
 
 type playerList struct {
@@ -46,7 +47,6 @@ func (pl *playerList) removePlayer(c *client.Client) {
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendPlayerInfoRemove(p)
 	})
-
 }
 
 type keepAliveHandler struct{ *server.KeepAlive }

@@ -1,8 +1,9 @@
 package game
 
 import (
-	"golang.org/x/time/rate"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 type Config struct {

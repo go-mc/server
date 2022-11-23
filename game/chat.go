@@ -1,12 +1,13 @@
 package game
 
 import (
+	"time"
+
 	"github.com/Tnze/go-mc/chat"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/client"
 	"go.uber.org/zap"
-	"time"
 )
 
 type globalChat struct {

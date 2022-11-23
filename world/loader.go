@@ -1,9 +1,10 @@
 package world
 
 import (
-	"golang.org/x/time/rate"
 	"math"
 	"sort"
+
+	"golang.org/x/time/rate"
 )
 
 // loader take part in chunk loading，each loader contains a position 'pos' and a radius 'r'

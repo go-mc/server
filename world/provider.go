@@ -4,15 +4,16 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+
 	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/save/region"
 	"github.com/Tnze/go-mc/server/auth"
 	"github.com/google/uuid"
 	"golang.org/x/time/rate"
-	"io/fs"
-	"os"
-	"path/filepath"
 )
 
 // ChunkProvider implements chunk storage

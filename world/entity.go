@@ -1,8 +1,9 @@
 package world
 
 import (
-	"github.com/df-mc/atomic"
 	"math"
+
+	"github.com/df-mc/atomic"
 )
 
 var entityCounter atomic.Int32
@@ -20,9 +21,11 @@ type Entity struct {
 	rot0 Rotation
 }
 
-type Position [3]float64
-type Rotation [2]float32
-type OnGround bool
+type (
+	Position [3]float64
+	Rotation [2]float32
+	OnGround bool
+)
 
 func (e *Entity) getPoint() [2]float64 {
 	return [2]float64{e.Position[0], e.Position[2]}

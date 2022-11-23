@@ -1,10 +1,11 @@
 package world
 
 import (
+	"time"
+
 	"github.com/Tnze/go-mc/server/auth"
 	"github.com/df-mc/atomic"
 	"github.com/google/uuid"
-	"time"
 )
 
 type Player struct {

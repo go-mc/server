@@ -10,6 +10,7 @@ type Client interface {
 	EntityViewer
 	SendDisconnect(reason chat.Message)
 	SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32)
+	SendSetChunkCacheCenter(chunkPos [2]int32)
 }
 
 type ChunkViewer interface {

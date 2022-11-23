@@ -3,6 +3,10 @@ package game
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
@@ -12,9 +16,6 @@ import (
 	"github.com/go-mc/server/world"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 type Game struct {

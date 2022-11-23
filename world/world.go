@@ -2,11 +2,12 @@ package world
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/Tnze/go-mc/level"
 	"github.com/go-mc/server/world/internal/bvh"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
-	"sync"
 )
 
 type World struct {
@@ -29,10 +30,12 @@ type playerView struct {
 	EntityViewer
 	*Player
 }
-type vec3d = bvh.Vec3[float64]
-type aabb3d = bvh.AABB[float64, vec3d]
-type playerViewNode = bvh.Node[float64, aabb3d, playerView]
-type playerViewTree = bvh.Tree[float64, aabb3d, playerView]
+type (
+	vec3d          = bvh.Vec3[float64]
+	aabb3d         = bvh.AABB[float64, vec3d]
+	playerViewNode = bvh.Node[float64, aabb3d, playerView]
+	playerViewTree = bvh.Tree[float64, aabb3d, playerView]
+)
 
 func New(logger *zap.Logger, provider ChunkProvider) (w *World) {
 	w = &World{
@@ -91,7 +94,7 @@ func (w *World) RemovePlayer(c Client, p *Player) {
 
 func (w *World) loadChunk(pos [2]int32) bool {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
-	//logger.Debug("Load chunk")
+	// logger.Debug("Load chunk")
 	c, err := w.chunkProvider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
@@ -107,7 +110,7 @@ func (w *World) loadChunk(pos [2]int32) bool {
 
 func (w *World) unloadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
-	//logger.Debug("Unload chunk")
+	// logger.Debug("Unload chunk")
 	c, ok := w.chunks[pos]
 	if !ok {
 		logger.Panic("Unloading an non-exist chunk")

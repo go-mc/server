@@ -3,6 +3,7 @@ package world
 import (
 	"bytes"
 	_ "embed"
+
 	"github.com/Tnze/go-mc/nbt"
 )
 
