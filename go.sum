@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v1.1.0 h1:ksErzDEI1khOiGPgpwuI7x2ebx/uXQNw7xJpn9Eq1+I=
 github.com/BurntSushi/toml v1.1.0/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
-github.com/Tnze/go-mc v1.19.1-0.20221122172802-4fa99fe11818 h1:k44xsuZOCKtu5Vhyb90iYsHjNmXEKaquZOqYoIr78os=
-github.com/Tnze/go-mc v1.19.1-0.20221122172802-4fa99fe11818/go.mod h1:DyW8IaHwJqwg4m9E+y2FV+SN62wqy0jWA0O2Hkiilmk=
+github.com/Tnze/go-mc v1.19.1-0.20221129063756-3750dff99dcd h1:E1Y8l2QrJ48ONFN2mqTNgJjc9uExzGs/lNcZ1Af883Q=
+github.com/Tnze/go-mc v1.19.1-0.20221129063756-3750dff99dcd/go.mod h1:DyW8IaHwJqwg4m9E+y2FV+SN62wqy0jWA0O2Hkiilmk=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

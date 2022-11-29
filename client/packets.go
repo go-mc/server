@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) {
+func (c *Client) sendPacket(id packetid.ClientboundPacketID, fields ...pk.FieldEncoder) {
 	var buffer bytes.Buffer
 
 	// Write the packet fields
@@ -27,7 +27,7 @@ func (c *Client) sendPacket(id int32, fields ...pk.FieldEncoder) {
 
 	// Send the packet data
 	c.queue.Push(pk.Packet{
-		ID:   id,
+		ID:   int32(id),
 		Data: buffer.Bytes(),
 	})
 }
@@ -96,7 +96,7 @@ func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
 		}
 	}
 	c.queue.Push(pk.Packet{
-		ID:   packetid.ClientboundPlayerInfo,
+		ID:   int32(packetid.ClientboundPlayerInfo),
 		Data: buffer.Bytes(),
 	})
 }
@@ -221,11 +221,11 @@ func (c *Client) SendRemoveEntities(entityIDs []int32) {
 	)
 }
 
-func (c *Client) SendSystemChat(msg chat.Message, typeID chat.Type) {
+func (c *Client) SendSystemChat(msg chat.Message, typeID int32) {
 	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.VarInt(typeID))
 }
 
-func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *chat.Message, typeID chat.Type, timestamp int64, salt int64, signature []byte) {
+func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *chat.Message, typeID int32, timestamp int64, salt int64, signature []byte) {
 	c.sendPacket(packetid.ClientboundPlayerChat,
 		chat.Text(plain),
 		pk.Boolean(message != nil),

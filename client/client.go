@@ -80,8 +80,10 @@ func (c *Client) startReceive(done func()) {
 	}
 }
 
-func (c *Client) AddHandler(id int32, handler packetHandler) { c.handlers[id] = handler }
-func (c *Client) GetPlayer() *world.Player                   { return c.player }
+func (c *Client) AddHandler(id packetid.ServerboundPacketID, handler packetHandler) {
+	c.handlers[id] = handler
+}
+func (c *Client) GetPlayer() *world.Player { return c.player }
 
 var defaultHandlers = []packetHandler{
 	packetid.ServerboundAcceptTeleportation:      clientAcceptTeleportation{},

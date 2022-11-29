@@ -15,8 +15,8 @@ type globalChat struct {
 	players *playerList
 }
 
-func (g *globalChat) broadcastSystemChat(msg chat.Message, typeID chat.Type) {
-	g.log.Info(msg.String(), zap.Int32("type", int32(typeID)))
+func (g *globalChat) broadcastSystemChat(msg chat.Message, typeID int32) {
+	g.log.Info(msg.String(), zap.Int32("type", typeID))
 	g.players.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendSystemChat(msg, typeID)
 	})
@@ -36,12 +36,12 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	}
 	player := c.GetPlayer()
 	unsignedMsg := chat.Text(string(message))
-	typeID := chat.Chat
+	typeID := int32(chat.Chat)
 	g.log.Info(
 		string(message),
 		zap.String("sender", player.Name),
 		zap.Time("timestamp", time.UnixMilli(int64(timestamp))),
-		zap.Int32("type", int32(typeID)),
+		zap.Int32("type", typeID),
 	)
 	g.players.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendPlayerChat(

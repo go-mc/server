@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/Tnze/go-mc/level"
+	"github.com/Tnze/go-mc/level/block"
 	"github.com/go-mc/server/world/internal/bvh"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -100,6 +101,12 @@ func (w *World) loadChunk(pos [2]int32) bool {
 		logger.Debug("Generate chunk")
 		// TODO: because there is no chunk generator，generate an empty chunk and mark it as generated
 		c = level.EmptyChunk(24)
+		stone := block.ToStateID[block.Stone{}]
+		for s := range c.Sections {
+			for i := 0; i < 16*16*16; i++ {
+				c.Sections[s].SetBlock(i, stone)
+			}
+		}
 		c.Status = level.StatusFull
 	} else if err != nil {
 		logger.Error("GetChunk error", zap.Error(err))

@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/BurntSushi/toml v1.1.0
-	github.com/Tnze/go-mc v1.19.1-0.20221122172802-4fa99fe11818
+	github.com/Tnze/go-mc v1.19.1-0.20221129063756-3750dff99dcd
 	github.com/df-mc/atomic v1.10.0
 	github.com/google/uuid v1.1.1
 	go.uber.org/zap v1.21.0
