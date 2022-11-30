@@ -3,16 +3,16 @@ package game
 import (
 	"time"
 
-	"github.com/Tnze/go-mc/registry"
-
-	"github.com/Tnze/go-mc/chat/sign"
-
 	"github.com/Tnze/go-mc/chat"
+	"github.com/Tnze/go-mc/chat/sign"
 	pk "github.com/Tnze/go-mc/net/packet"
+	"github.com/Tnze/go-mc/registry"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/client"
 	"go.uber.org/zap"
 )
+
+const MsgExpiresTime = time.Minute * 5
 
 type globalChat struct {
 	log           *zap.Logger
@@ -30,7 +30,7 @@ func (g *globalChat) broadcastSystemChat(msg chat.Message, overlay bool) {
 func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	var (
 		message         pk.String
-		timestamp       pk.Long
+		timestampLong   pk.Long
 		salt            pk.Long
 		signature       pk.ByteArray
 		signedPreview   pk.Boolean
@@ -40,7 +40,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	)
 	err := p.Scan(
 		&message,
-		&timestamp,
+		&timestampLong,
 		&salt,
 		&signature,
 		&signedPreview,
@@ -55,11 +55,19 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	}
 
 	player := c.GetPlayer()
-	g.log.Info(
-		string(message),
+	timestamp := time.UnixMilli(int64(timestampLong))
+	logger := g.log.With(
 		zap.String("sender", player.Name),
-		zap.Time("timestamp", time.UnixMilli(int64(timestamp))),
+		zap.Time("timestamp", timestamp),
 	)
+	if time.Since(timestamp) > MsgExpiresTime {
+		logger.Debug("Player send expired message",
+			zap.String("msg", string(message)),
+		)
+		return nil
+	}
+	// auth.VerifySignature(player.PubKey.PubKey)
+	logger.Info(string(message))
 	unsignedMsg := chat.Text(string(message))
 	chatTypeID, d := g.chatTypeCodec.Find("minecraft:chat")
 	chatType := chat.Type{

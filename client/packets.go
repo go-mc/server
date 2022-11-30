@@ -228,9 +228,7 @@ func (c *Client) SendSystemChat(msg chat.Message, overlay bool) {
 }
 
 func (c *Client) SendPlayerChat(msg sign.PlayerMessage, ctype chat.Type) {
-	c.sendPacket(packetid.ClientboundPlayerChat,
-		&msg, &ctype,
-	)
+	c.sendPacket(packetid.ClientboundPlayerChat, &msg, &ctype)
 }
 
 func (c *Client) SendSetChunkCacheCenter(chunkPos [2]int32) {
