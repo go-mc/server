@@ -4,22 +4,24 @@ import (
 	"bytes"
 	_ "embed"
 
+	"github.com/Tnze/go-mc/registry"
+
 	"github.com/Tnze/go-mc/nbt"
 )
 
 //go:embed RegistryCodec.nbt
-var dimensionCodecBytes []byte
-var RegistryCodec nbt.RawMessage
+var networkCodecBytes []byte
+var NetworkCodec registry.NetworkCodec
 
 func init() {
-	r := bytes.NewReader(dimensionCodecBytes)
+	r := bytes.NewReader(networkCodecBytes)
 	d := nbt.NewDecoder(r)
-	_, err := d.Decode(&RegistryCodec)
+	_, err := d.Decode(&NetworkCodec)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (w *World) DimensionCodec() nbt.RawMessage {
-	return RegistryCodec
+func (w *World) NetworkCodec() registry.NetworkCodec {
+	return NetworkCodec
 }

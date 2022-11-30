@@ -40,15 +40,22 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 		pl.updateLatency(cc, latency)
 	})
 	go keepAlive.Run(context.TODO())
+	playerProvider := world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata"))
+	world := world.New(log.Named("overworld"), overworld)
+	registryCodec := world.NetworkCodec()
 	return &Game{
 		log: log.Named("game"),
 
 		config: config,
 
-		playerProvider: world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata")),
-		overworld:      world.New(log.Named("overworld"), overworld),
+		playerProvider: playerProvider,
+		overworld:      world,
 
-		globalChat: globalChat{log.Named("chat"), &pl},
+		globalChat: globalChat{
+			log:           log.Named("chat"),
+			players:       &pl,
+			chatTypeCodec: &registryCodec.ChatType,
+		},
 		playerList: &pl,
 	}
 }
@@ -89,8 +96,8 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 
 	joinMsg := chat.TranslateMsg("multiplayer.player.joined", chat.Text(p.Name)).SetColor(chat.Yellow)
 	leftMsg := chat.TranslateMsg("multiplayer.player.left", chat.Text(p.Name)).SetColor(chat.Yellow)
-	g.globalChat.broadcastSystemChat(joinMsg, chat.System)
-	defer g.globalChat.broadcastSystemChat(leftMsg, chat.System)
+	g.globalChat.broadcastSystemChat(joinMsg, false)
+	defer g.globalChat.broadcastSystemChat(leftMsg, false)
 
 	g.playerList.addPlayer(c, p)
 	defer g.playerList.removePlayer(c)

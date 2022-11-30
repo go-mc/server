@@ -7,6 +7,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/Tnze/go-mc/chat/sign"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
@@ -51,7 +53,7 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 		pk.Array([]pk.String{
 			pk.String(w.Name()),
 		}),
-		pk.NBT(w.DimensionCodec()),
+		pk.NBT(w.NetworkCodec()),
 		pk.Identifier("minecraft:overworld"),
 		pk.String(w.Name()),
 		pk.Long(binary.BigEndian.Uint64(hashedSeed[:8])),
@@ -221,22 +223,13 @@ func (c *Client) SendRemoveEntities(entityIDs []int32) {
 	)
 }
 
-func (c *Client) SendSystemChat(msg chat.Message, typeID int32) {
-	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.VarInt(typeID))
+func (c *Client) SendSystemChat(msg chat.Message, overlay bool) {
+	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.Boolean(overlay))
 }
 
-func (c *Client) SendPlayerChat(sender *world.Player, plain string, message *chat.Message, typeID int32, timestamp int64, salt int64, signature []byte) {
+func (c *Client) SendPlayerChat(msg sign.PlayerMessage, ctype chat.Type) {
 	c.sendPacket(packetid.ClientboundPlayerChat,
-		chat.Text(plain),
-		pk.Boolean(message != nil),
-		pk.Opt{Has: message != nil, Field: message},
-		pk.VarInt(typeID),
-		pk.UUID(sender.UUID),
-		chat.Text(sender.Name),
-		pk.Boolean(false), // has team name
-		pk.Long(timestamp),
-		pk.Long(salt),
-		pk.ByteArray(signature),
+		&msg, &ctype,
 	)
 }
 
