@@ -16,6 +16,9 @@ type Player struct {
 	PubKey     *auth.PublicKey
 	Properties []auth.Property
 
+	lastChatTimestamp time.Time
+	lastChatSignature []byte
+
 	ChunkPos     [3]int32
 	ViewDistance int32
 

@@ -7,9 +7,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/Tnze/go-mc/chat/sign"
-
 	"github.com/Tnze/go-mc/chat"
+	"github.com/Tnze/go-mc/chat/sign"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
@@ -38,7 +37,10 @@ func (c *Client) SendKeepAlive(id int64) {
 	c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
 }
 
+// SendDisconnect send ClientboundDisconnect packet to client.
+// Once the packet is sent, the connection will be closed.
 func (c *Client) SendDisconnect(reason chat.Message) {
+	c.log.Debug("Sending disconnect packet to player", zap.String("reason", reason.ClearString()))
 	c.sendPacket(packetid.ClientboundDisconnect, reason)
 }
 
@@ -53,7 +55,7 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 		pk.Array([]pk.String{
 			pk.String(w.Name()),
 		}),
-		pk.NBT(w.NetworkCodec()),
+		pk.NBT(world.NetworkCodec),
 		pk.Identifier("minecraft:overworld"),
 		pk.String(w.Name()),
 		pk.Long(binary.BigEndian.Uint64(hashedSeed[:8])),

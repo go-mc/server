@@ -21,7 +21,3 @@ func init() {
 		panic(err)
 	}
 }
-
-func (w *World) NetworkCodec() registry.NetworkCodec {
-	return NetworkCodec
-}

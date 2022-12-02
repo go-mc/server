@@ -27,7 +27,7 @@ func New(log *zap.Logger, conn *net.Conn, player *world.Player) *Client {
 		conn:     conn,
 		player:   player,
 		queue:    server.NewPacketQueue(),
-		handlers: defaultHandlers,
+		handlers: defaultHandlers[:],
 	}
 }
 
@@ -52,6 +52,9 @@ func (c *Client) startSend(done func()) {
 		err := c.conn.WritePacket(p)
 		if err != nil {
 			c.log.Debug("Send packet fail", zap.Error(err))
+			return
+		}
+		if packetid.ClientboundPacketID(p.ID) == packetid.ClientboundDisconnect {
 			return
 		}
 	}
@@ -85,55 +88,12 @@ func (c *Client) AddHandler(id packetid.ServerboundPacketID, handler packetHandl
 }
 func (c *Client) GetPlayer() *world.Player { return c.player }
 
-var defaultHandlers = []packetHandler{
-	packetid.ServerboundAcceptTeleportation:      clientAcceptTeleportation{},
-	packetid.ServerboundBlockEntityTagQuery:      nil,
-	packetid.ServerboundChangeDifficulty:         nil,
-	packetid.ServerboundChatCommand:              nil,
-	packetid.ServerboundChat:                     nil,
-	packetid.ServerboundChatPreview:              nil,
-	packetid.ServerboundClientCommand:            nil,
-	packetid.ServerboundClientInformation:        clientInformation{},
-	packetid.ServerboundCommandSuggestion:        nil,
-	packetid.ServerboundContainerButtonClick:     nil,
-	packetid.ServerboundContainerClick:           nil,
-	packetid.ServerboundContainerClose:           nil,
-	packetid.ServerboundCustomPayload:            nil,
-	packetid.ServerboundEditBook:                 nil,
-	packetid.ServerboundEntityTagQuery:           nil,
-	packetid.ServerboundInteract:                 nil,
-	packetid.ServerboundJigsawGenerate:           nil,
-	packetid.ServerboundKeepAlive:                nil,
-	packetid.ServerboundLockDifficulty:           nil,
-	packetid.ServerboundMovePlayerPos:            clientMovePlayerPos{},
-	packetid.ServerboundMovePlayerPosRot:         clientMovePlayerPosRot{},
-	packetid.ServerboundMovePlayerRot:            clientMovePlayerRot{},
-	packetid.ServerboundMovePlayerStatusOnly:     clientMovePlayerStatusOnly{},
-	packetid.ServerboundMoveVehicle:              clientMoveVehicle{},
-	packetid.ServerboundPaddleBoat:               nil,
-	packetid.ServerboundPickItem:                 nil,
-	packetid.ServerboundPlaceRecipe:              nil,
-	packetid.ServerboundPlayerAbilities:          nil,
-	packetid.ServerboundPlayerAction:             nil,
-	packetid.ServerboundPlayerCommand:            nil,
-	packetid.ServerboundPlayerInput:              nil,
-	packetid.ServerboundPong:                     nil,
-	packetid.ServerboundRecipeBookChangeSettings: nil,
-	packetid.ServerboundRecipeBookSeenRecipe:     nil,
-	packetid.ServerboundRenameItem:               nil,
-	packetid.ServerboundResourcePack:             nil,
-	packetid.ServerboundSeenAdvancements:         nil,
-	packetid.ServerboundSelectTrade:              nil,
-	packetid.ServerboundSetBeacon:                nil,
-	packetid.ServerboundSetCarriedItem:           nil,
-	packetid.ServerboundSetCommandBlock:          nil,
-	packetid.ServerboundSetCommandMinecart:       nil,
-	packetid.ServerboundSetCreativeModeSlot:      nil,
-	packetid.ServerboundSetJigsawBlock:           nil,
-	packetid.ServerboundSetStructureBlock:        nil,
-	packetid.ServerboundSignUpdate:               nil,
-	packetid.ServerboundSwing:                    nil,
-	packetid.ServerboundTeleportToEntity:         nil,
-	packetid.ServerboundUseItemOn:                nil,
-	packetid.ServerboundUseItem:                  nil,
+var defaultHandlers = [packetid.ServerboundPacketIDGuard]packetHandler{
+	packetid.ServerboundAcceptTeleportation:  clientAcceptTeleportation{},
+	packetid.ServerboundClientInformation:    clientInformation{},
+	packetid.ServerboundMovePlayerPos:        clientMovePlayerPos{},
+	packetid.ServerboundMovePlayerPosRot:     clientMovePlayerPosRot{},
+	packetid.ServerboundMovePlayerRot:        clientMovePlayerRot{},
+	packetid.ServerboundMovePlayerStatusOnly: clientMovePlayerStatusOnly{},
+	packetid.ServerboundMoveVehicle:          clientMoveVehicle{},
 }

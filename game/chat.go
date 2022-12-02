@@ -1,6 +1,8 @@
 package game
 
 import (
+	"crypto"
+	"crypto/rsa"
 	"time"
 
 	"github.com/Tnze/go-mc/chat"
@@ -60,8 +62,57 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 		zap.String("sender", player.Name),
 		zap.Time("timestamp", timestamp),
 	)
+
+	if existInvalidCharacter(string(message)) {
+		c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.illegal_characters"))
+		return nil
+	}
+
+	if !player.SetLastChatTimestamp(timestamp) {
+		c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.out_of_order_chat"))
+		return nil
+	}
+
+	// TODO: check if the client disable chatting
+	if false {
+		c.SendSystemChat(chat.TranslateMsg("chat.disabled.options").SetColor(chat.Red), false)
+		return nil
+	}
+
+	// verify message
+	if player.PubKey != nil {
+		if time.Now().After(player.PubKey.ExpiresAt) {
+			c.SendSystemChat(chat.TranslateMsg("chat.disabled.expiredProfileKey").SetColor(chat.Red), false)
+			return nil
+		}
+		decorated, _ := chat.Text(string(message)).MarshalJSON()
+		playerMsg := sign.PlayerMessage{
+			MessageHeader: sign.MessageHeader{
+				PrevSignature: player.GetPrevChatSignature(),
+				Sender:        player.UUID,
+			},
+			MessageSignature: signature,
+			MessageBody: sign.MessageBody{
+				PlainMsg:     string(message),
+				DecoratedMsg: decorated,
+				Timestamp:    timestamp,
+				Salt:         int64(salt),
+				History:      prevMsg,
+			},
+			UnsignedContent: nil,
+			FilterMask:      sign.FilterMask{Type: 0},
+		}
+		player.SetPrevChatSignature(playerMsg.MessageSignature)
+
+		if err := rsa.VerifyPKCS1v15(player.PubKey.PubKey, crypto.SHA256, playerMsg.Hash(), signature); err != nil {
+			logger.Debug("Unsigned message", zap.Error(err))
+			c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.unsigned_chat"))
+			return nil
+		}
+	}
+
 	if time.Since(timestamp) > MsgExpiresTime {
-		logger.Debug("Player send expired message",
+		logger.Warn("Player send expired message",
 			zap.String("msg", string(message)),
 		)
 		return nil
@@ -79,4 +130,13 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 		c.(*client.Client).SendSystemChat(chatType.Decorate(unsignedMsg, &d.Chat), false)
 	})
 	return nil
+}
+
+func existInvalidCharacter(msg string) bool {
+	for _, c := range msg {
+		if c == '§' || c < ' ' || c == '\x7F' {
+			return true
+		}
+	}
+	return false
 }

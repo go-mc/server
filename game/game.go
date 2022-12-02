@@ -31,7 +31,7 @@ type Game struct {
 }
 
 func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game {
-	overworld := world.NewProvider(filepath.Join(".", config.LevelName, "region"), config.ChunkLoadingLimiter.Limiter())
+	overworldProvider := world.NewProvider(filepath.Join(".", config.LevelName, "region"), config.ChunkLoadingLimiter.Limiter())
 	keepAlive := server.NewKeepAlive()
 	pl := playerList{pingList: pingList, keepAlive: keepAlive}
 	keepAlive.AddPlayerDelayUpdateHandler(func(c server.KeepAliveClient, latency time.Duration) {
@@ -41,15 +41,15 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 	})
 	go keepAlive.Run(context.TODO())
 	playerProvider := world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata"))
-	world := world.New(log.Named("overworld"), overworld)
-	registryCodec := world.NetworkCodec()
+	overworld := world.New(log.Named("overworld"), overworldProvider)
+	registryCodec := world.NetworkCodec
 	return &Game{
 		log: log.Named("game"),
 
 		config: config,
 
 		playerProvider: playerProvider,
-		overworld:      world,
+		overworld:      overworld,
 
 		globalChat: globalChat{
 			log:           log.Named("chat"),
