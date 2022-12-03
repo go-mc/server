@@ -13,6 +13,7 @@ type Config struct {
 	NetworkCompressionThreshold int    `toml:"network-compression-threshold"`
 	OnlineMode                  bool   `toml:"online-mode"`
 	LevelName                   string `toml:"level-name"`
+	PreviewsChat                bool   `toml:"previews-chat"`
 	EnforceSecureProfile        bool   `toml:"enforce-secure-profile"`
 
 	ChunkLoadingLimiter       Limiter `toml:"chunk-loading-limiter"`

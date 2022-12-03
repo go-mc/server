@@ -61,7 +61,7 @@ func main() {
 			Threshold:            config.NetworkCompressionThreshold,
 			LoginChecker:         playerList, // playerList implement LoginChecker interface to limit the maximum number of online players
 		},
-		GamePlay: game.NewGame(logger, config, playerList),
+		GamePlay: game.NewGame(logger, config, playerList, serverInfo),
 	}
 	logger.Info("Start listening", zap.String("address", config.ListenAddress))
 	err = s.Listen(config.ListenAddress)

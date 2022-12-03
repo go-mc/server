@@ -70,6 +70,22 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 	)
 }
 
+func (c *Client) SendServerData(motd *chat.Message, favIcon string, previewsChat, enforceSecureProfile bool) {
+	c.sendPacket(
+		packetid.ClientboundServerData,
+		pk.Boolean(motd != nil), pk.Opt{
+			Has:   motd != nil,
+			Field: motd,
+		},
+		pk.Boolean(favIcon != ""), pk.Opt{
+			Has:   favIcon != "",
+			Field: pk.String(favIcon),
+		},
+		pk.Boolean(previewsChat),
+		pk.Boolean(enforceSecureProfile),
+	)
+}
+
 func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
 	var buffer bytes.Buffer
 	_, err := pk.Tuple{
@@ -231,6 +247,14 @@ func (c *Client) SendSystemChat(msg chat.Message, overlay bool) {
 
 func (c *Client) SendPlayerChat(msg sign.PlayerMessage, chatType chat.Type) {
 	c.sendPacket(packetid.ClientboundPlayerChat, &msg, &chatType)
+}
+
+func (c *Client) SendChatPreview(queryID int32, msg *chat.Message) {
+	c.sendPacket(packetid.ClientboundChatPreview,
+		pk.Int(queryID),
+		pk.Boolean(msg != nil),
+		pk.Opt{Has: msg != nil, Field: msg},
+	)
 }
 
 func (c *Client) SendSetChunkCacheCenter(chunkPos [2]int32) {

@@ -21,16 +21,18 @@ import (
 type Game struct {
 	log *zap.Logger
 
-	config Config
+	config     Config
+	serverInfo *server.PingInfo
 
 	playerProvider world.PlayerProvider
 	overworld      *world.World
 
-	globalChat globalChat
+	globalChat  globalChat
+	chatPreview chatPreview
 	*playerList
 }
 
-func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game {
+func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, serverInfo *server.PingInfo) *Game {
 	overworldProvider := world.NewProvider(filepath.Join(".", config.LevelName, "region"), config.ChunkLoadingLimiter.Limiter())
 	keepAlive := server.NewKeepAlive()
 	pl := playerList{pingList: pingList, keepAlive: keepAlive}
@@ -46,7 +48,8 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 	return &Game{
 		log: log.Named("game"),
 
-		config: config,
+		config:     config,
+		serverInfo: serverInfo,
 
 		playerProvider: playerProvider,
 		overworld:      overworld,
@@ -56,7 +59,8 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList) *Game 
 			players:       &pl,
 			chatTypeCodec: &registryCodec.ChatType,
 		},
-		playerList: &pl,
+		chatPreview: chatPreview{log: log.Named("chat-preview")},
+		playerList:  &pl,
 	}
 }
 
@@ -103,8 +107,10 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	defer g.playerList.removePlayer(c)
 
 	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
+	c.AddHandler(packetid.ServerboundChatPreview, &g.chatPreview)
 
 	c.SendLogin(g.overworld, p)
+	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.PreviewsChat, g.config.EnforceSecureProfile)
 	c.SendPlayerPosition(p.Position, p.Rotation, true)
 	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)
