@@ -21,7 +21,7 @@ type globalChat struct {
 }
 
 func (g *globalChat) broadcastSystemChat(msg chat.Message, overlay bool) {
-	g.log.Info(msg.String(), zap.Bool("type", overlay))
+	g.log.Info(msg.String(), zap.Bool("overlay", overlay))
 	g.players.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendSystemChat(msg, overlay)
 	})
@@ -78,13 +78,14 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	}
 
 	// verify message
+	var playerMsg sign.PlayerMessage
 	if player.PubKey != nil {
 		if time.Now().After(player.PubKey.ExpiresAt) {
 			c.SendSystemChat(chat.TranslateMsg("chat.disabled.expiredProfileKey").SetColor(chat.Red), false)
 			return nil
 		}
 		// decorated, _ := chat.Text(string(message)).MarshalJSON()
-		playerMsg := sign.PlayerMessage{
+		playerMsg = sign.PlayerMessage{
 			MessageHeader: sign.MessageHeader{
 				PrevSignature: player.GetPrevChatSignature(),
 				Sender:        player.UUID,
@@ -107,25 +108,40 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 			c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.unsigned_chat"))
 			return nil
 		}
+	} else {
+		playerMsg = sign.PlayerMessage{
+			MessageHeader: sign.MessageHeader{
+				PrevSignature: player.GetPrevChatSignature(),
+				Sender:        player.UUID,
+			},
+			MessageSignature: nil,
+			MessageBody: sign.MessageBody{
+				PlainMsg:     string(message),
+				DecoratedMsg: nil,
+				Timestamp:    timestamp,
+				Salt:         int64(salt),
+				History:      prevMsg,
+			},
+			UnsignedContent: nil,
+			FilterMask:      sign.FilterMask{Type: 0},
+		}
 	}
 
 	if time.Since(timestamp) > MsgExpiresTime {
-		logger.Warn("Player send expired message",
-			zap.String("msg", string(message)),
-		)
+		logger.Warn("Player send expired message", zap.String("msg", string(message)))
 		return nil
 	}
-	// auth.VerifySignature(player.PubKey.PubKey)
-	logger.Info(string(message))
-	unsignedMsg := chat.Text(string(message))
-	chatTypeID, d := g.chatTypeCodec.Find("minecraft:chat")
+	chatTypeID, decorator := g.chatTypeCodec.Find("minecraft:chat")
 	chatType := chat.Type{
 		ID:         chatTypeID,
 		SenderName: chat.Text(player.Name),
 		TargetName: nil,
 	}
+	decorated := chatType.Decorate(chat.Text(playerMsg.MessageBody.PlainMsg), &decorator.Chat)
+	logger.Info(decorated.String())
+
 	g.players.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
-		c.(*client.Client).SendSystemChat(chatType.Decorate(unsignedMsg, &d.Chat), false)
+		c.(*client.Client).SendPlayerChat(playerMsg, chatType)
 	})
 	return nil
 }
