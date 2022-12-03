@@ -40,7 +40,7 @@ func (c *Client) SendKeepAlive(id int64) {
 // SendDisconnect send ClientboundDisconnect packet to client.
 // Once the packet is sent, the connection will be closed.
 func (c *Client) SendDisconnect(reason chat.Message) {
-	c.log.Debug("Sending disconnect packet to player", zap.String("reason", reason.ClearString()))
+	c.log.Debug("Disconnect player", zap.String("reason", reason.ClearString()))
 	c.sendPacket(packetid.ClientboundDisconnect, reason)
 }
 
@@ -229,8 +229,8 @@ func (c *Client) SendSystemChat(msg chat.Message, overlay bool) {
 	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.Boolean(overlay))
 }
 
-func (c *Client) SendPlayerChat(msg sign.PlayerMessage, ctype chat.Type) {
-	c.sendPacket(packetid.ClientboundPlayerChat, &msg, &ctype)
+func (c *Client) SendPlayerChat(msg sign.PlayerMessage, chatType chat.Type) {
+	c.sendPacket(packetid.ClientboundPlayerChat, &msg, &chatType)
 }
 
 func (c *Client) SendSetChunkCacheCenter(chunkPos [2]int32) {

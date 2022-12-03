@@ -1,8 +1,6 @@
 package game
 
 import (
-	"crypto"
-	"crypto/rsa"
 	"time"
 
 	"github.com/Tnze/go-mc/chat"
@@ -85,7 +83,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 			c.SendSystemChat(chat.TranslateMsg("chat.disabled.expiredProfileKey").SetColor(chat.Red), false)
 			return nil
 		}
-		decorated, _ := chat.Text(string(message)).MarshalJSON()
+		// decorated, _ := chat.Text(string(message)).MarshalJSON()
 		playerMsg := sign.PlayerMessage{
 			MessageHeader: sign.MessageHeader{
 				PrevSignature: player.GetPrevChatSignature(),
@@ -94,7 +92,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 			MessageSignature: signature,
 			MessageBody: sign.MessageBody{
 				PlainMsg:     string(message),
-				DecoratedMsg: decorated,
+				DecoratedMsg: nil,
 				Timestamp:    timestamp,
 				Salt:         int64(salt),
 				History:      prevMsg,
@@ -104,7 +102,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 		}
 		player.SetPrevChatSignature(playerMsg.MessageSignature)
 
-		if err := rsa.VerifyPKCS1v15(player.PubKey.PubKey, crypto.SHA256, playerMsg.Hash(), signature); err != nil {
+		if err := player.PubKey.VerifyMessage(playerMsg.Hash(), signature); err != nil {
 			logger.Debug("Unsigned message", zap.Error(err))
 			c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.unsigned_chat"))
 			return nil
