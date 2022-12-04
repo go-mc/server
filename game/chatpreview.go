@@ -1,7 +1,6 @@
 package game
 
 import (
-	"github.com/Tnze/go-mc/chat"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/go-mc/server/client"
 	"go.uber.org/zap"
@@ -25,7 +24,6 @@ func (cp *chatPreview) Handle(p pk.Packet, c *client.Client) error {
 		zap.Int32("query id", int32(QueryID)),
 		zap.String("msg", string(Message)),
 	)
-	msg := chat.Text("预览消息").SetColor(chat.Aqua)
-	c.SendChatPreview(int32(QueryID), &msg)
+	c.SendChatPreview(int32(QueryID), nil)
 	return nil
 }
