@@ -13,7 +13,7 @@ type Client struct {
 	log      *zap.Logger
 	conn     *net.Conn
 	player   *world.Player
-	queue    *server.PacketQueue
+	queue    server.PacketQueue
 	handlers []packetHandler
 }
 
