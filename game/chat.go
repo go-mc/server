@@ -35,8 +35,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 		signature       pk.ByteArray
 		signedPreview   pk.Boolean
 		prevMsg         []sign.HistoryMessage
-		lastReceived    pk.Boolean
-		lastReceivedMsg sign.HistoryMessage
+		lastReceivedMsg pk.Option[sign.HistoryMessage, *sign.HistoryMessage]
 	)
 	err := p.Scan(
 		&message,
@@ -45,10 +44,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 		&signature,
 		&signedPreview,
 		pk.Array(&prevMsg),
-		&lastReceived, pk.Opt{
-			Has:   &lastReceived,
-			Field: &lastReceivedMsg,
-		},
+		&lastReceivedMsg,
 	)
 	if err != nil {
 		return err
