@@ -1,10 +1,10 @@
 module github.com/go-mc/server
 
-go 1.18
+go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.1.0
-	github.com/Tnze/go-mc v1.19.1-0.20221129063756-3750dff99dcd
+	github.com/Tnze/go-mc v1.19.1-0.20221205053142-b56943122e03
 	github.com/df-mc/atomic v1.10.0
 	github.com/google/uuid v1.1.1
 	go.uber.org/zap v1.21.0
