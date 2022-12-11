@@ -27,8 +27,7 @@ type Game struct {
 	playerProvider world.PlayerProvider
 	overworld      *world.World
 
-	globalChat  globalChat
-	chatPreview chatPreview
+	globalChat globalChat
 	*playerList
 }
 
@@ -59,8 +58,7 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, server
 			players:       &pl,
 			chatTypeCodec: &registryCodec.ChatType,
 		},
-		chatPreview: chatPreview{log: log.Named("chat-preview")},
-		playerList:  &pl,
+		playerList: &pl,
 	}
 }
 
@@ -107,7 +105,6 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	defer g.playerList.removePlayer(c)
 
 	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
-	c.AddHandler(packetid.ServerboundChatPreview, &g.chatPreview)
 
 	c.SendLogin(g.overworld, p)
 	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.PreviewsChat, g.config.EnforceSecureProfile)

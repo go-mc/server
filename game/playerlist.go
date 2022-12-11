@@ -45,7 +45,7 @@ func (pl *playerList) removePlayer(c *client.Client) {
 	pl.keepAlive.ClientLeft(c)
 	p := c.GetPlayer()
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
-		c.(*client.Client).SendPlayerInfoRemove(p)
+		c.(*client.Client).SendPlayerInfoRemove([]*world.Player{p})
 	})
 }
 

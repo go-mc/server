@@ -13,6 +13,7 @@ import (
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/go-mc/server/world"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -99,31 +100,22 @@ func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
 	// Player
 	for _, p := range players {
 		_, err := pk.Tuple{
-			pk.UUID(p.UUID),
 			pk.String(p.Name),
 			pk.Array(p.Properties),
-			pk.VarInt(p.Gamemode),
-			pk.VarInt(p.Latency().Milliseconds()),
-			pk.Boolean(false), // Has Display Name
-			pk.Boolean(p.PubKey != nil),
-			pk.Opt{
-				Has:   p.PubKey != nil,
-				Field: p.PubKey,
-			},
 		}.WriteTo(&buffer)
 		if err != nil {
 			c.log.Panic("Marshal packet error", zap.Error(err))
 		}
 	}
 	c.queue.Push(pk.Packet{
-		ID:   int32(packetid.ClientboundPlayerInfo),
+		ID:   int32(packetid.ClientboundPlayerInfoUpdate),
 		Data: buffer.Bytes(),
 	})
 }
 
 func (c *Client) SendPlayerInfoUpdateLatency(player *world.Player, latency time.Duration) {
 	c.sendPacket(
-		packetid.ClientboundPlayerInfo,
+		packetid.ClientboundPlayerInfoUpdate,
 		pk.VarInt(2),
 		pk.VarInt(1),
 		pk.UUID(player.UUID),
@@ -131,13 +123,22 @@ func (c *Client) SendPlayerInfoUpdateLatency(player *world.Player, latency time.
 	)
 }
 
-func (c *Client) SendPlayerInfoRemove(player *world.Player) {
-	c.sendPacket(
-		packetid.ClientboundPlayerInfo,
-		pk.VarInt(4),
-		pk.VarInt(1),
-		pk.UUID(player.UUID),
-	)
+func (c *Client) SendPlayerInfoRemove(players []*world.Player) {
+	var buff bytes.Buffer
+
+	if _, err := pk.VarInt(len(players)).WriteTo(&buff); err != nil {
+		c.log.Panic("Marshal packet error", zap.Error(err))
+	}
+	for _, p := range players {
+		if _, err := pk.UUID(p.UUID).WriteTo(&buff); err != nil {
+			c.log.Panic("Marshal packet error", zap.Error(err))
+		}
+	}
+
+	c.queue.Push(pk.Packet{
+		ID:   int32(packetid.ClientboundPlayerInfoRemove),
+		Data: buff.Bytes(),
+	})
 }
 
 func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk) {
@@ -245,15 +246,27 @@ func (c *Client) SendSystemChat(msg chat.Message, overlay bool) {
 	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.Boolean(overlay))
 }
 
-func (c *Client) SendPlayerChat(msg sign.PlayerMessage, chatType chat.Type) {
-	c.sendPacket(packetid.ClientboundPlayerChat, &msg, &chatType)
-}
-
-func (c *Client) SendChatPreview(queryID int32, msg *chat.Message) {
-	c.sendPacket(packetid.ClientboundChatPreview,
-		pk.Int(queryID),
-		pk.Boolean(msg != nil),
-		pk.Opt{Has: msg != nil, Field: msg},
+func (c *Client) SendPlayerChat(
+	sender uuid.UUID,
+	index int32,
+	signature pk.Option[sign.Signature, *sign.Signature],
+	body *sign.MessageBody,
+	unsignedContent *chat.Message,
+	filter *sign.FilterMask,
+	chatType *chat.Type,
+) {
+	c.sendPacket(
+		packetid.ClientboundPlayerChat,
+		pk.UUID(sender),
+		pk.VarInt(index),
+		signature,
+		body,
+		pk.OptionEncoder[*chat.Message]{
+			Has: unsignedContent != nil,
+			Val: unsignedContent,
+		},
+		filter,
+		chatType,
 	)
 }
 

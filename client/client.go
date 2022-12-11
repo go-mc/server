@@ -4,6 +4,7 @@ import (
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
+	"github.com/Tnze/go-mc/net/queue"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/world"
 	"go.uber.org/zap"
@@ -26,7 +27,7 @@ func New(log *zap.Logger, conn *net.Conn, player *world.Player) *Client {
 		log:      log,
 		conn:     conn,
 		player:   player,
-		queue:    server.NewPacketQueue(),
+		queue:    queue.NewChannelQueue[pk.Packet](256),
 		handlers: defaultHandlers[:],
 	}
 }

@@ -29,22 +29,18 @@ func (g *globalChat) broadcastSystemChat(msg chat.Message, overlay bool) {
 
 func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	var (
-		message         pk.String
-		timestampLong   pk.Long
-		salt            pk.Long
-		signature       pk.ByteArray
-		signedPreview   pk.Boolean
-		prevMsg         []sign.HistoryMessage
-		lastReceivedMsg pk.Option[sign.HistoryMessage, *sign.HistoryMessage]
+		message       pk.String
+		timestampLong pk.Long
+		salt          pk.Long
+		signature     pk.Option[sign.Signature, *sign.Signature]
+		lastSeen      sign.HistoryUpdate
 	)
 	err := p.Scan(
 		&message,
 		&timestampLong,
 		&salt,
 		&signature,
-		&signedPreview,
-		pk.Array(&prevMsg),
-		&lastReceivedMsg,
+		&lastSeen,
 	)
 	if err != nil {
 		return err
@@ -74,54 +70,9 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 	}
 
 	// verify message
-	var playerMsg sign.PlayerMessage
-	if player.PubKey != nil {
-		if time.Now().After(player.PubKey.ExpiresAt) {
-			c.SendSystemChat(chat.TranslateMsg("chat.disabled.expiredProfileKey").SetColor(chat.Red), false)
-			return nil
-		}
-		// decorated, _ := chat.Text(string(message)).MarshalJSON()
-		playerMsg = sign.PlayerMessage{
-			MessageHeader: sign.MessageHeader{
-				PrevSignature: player.GetPrevChatSignature(),
-				Sender:        player.UUID,
-			},
-			MessageSignature: signature,
-			MessageBody: sign.MessageBody{
-				PlainMsg:     string(message),
-				DecoratedMsg: nil,
-				Timestamp:    timestamp,
-				Salt:         int64(salt),
-				History:      prevMsg,
-			},
-			UnsignedContent: nil,
-			FilterMask:      sign.FilterMask{Type: 0},
-		}
-		player.SetPrevChatSignature(playerMsg.MessageSignature)
-
-		if err := player.PubKey.VerifyMessage(playerMsg.Hash(), signature); err != nil {
-			logger.Debug("Unsigned message", zap.Error(err))
-			c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.unsigned_chat"))
-			return nil
-		}
-	} else {
-		playerMsg = sign.PlayerMessage{
-			MessageHeader: sign.MessageHeader{
-				PrevSignature: player.GetPrevChatSignature(),
-				Sender:        player.UUID,
-			},
-			MessageSignature: nil,
-			MessageBody: sign.MessageBody{
-				PlainMsg:     string(message),
-				DecoratedMsg: nil,
-				Timestamp:    timestamp,
-				Salt:         int64(salt),
-				History:      prevMsg,
-			},
-			UnsignedContent: nil,
-			FilterMask:      sign.FilterMask{Type: 0},
-		}
-	}
+	//var playerMsg sign.PlayerMessage
+	////if player.PubKey != nil {
+	////}
 
 	if time.Since(timestamp) > MsgExpiresTime {
 		logger.Warn("Player send expired message", zap.String("msg", string(message)))
@@ -133,11 +84,24 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 		SenderName: chat.Text(player.Name),
 		TargetName: nil,
 	}
-	decorated := chatType.Decorate(chat.Text(playerMsg.MessageBody.PlainMsg), &decorator.Chat)
+	decorated := chatType.Decorate(chat.Text(string(message)), &decorator.Chat)
 	logger.Info(decorated.String())
 
 	g.players.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
-		c.(*client.Client).SendPlayerChat(playerMsg, chatType)
+		c.(*client.Client).SendPlayerChat(
+			player.UUID,
+			0,
+			signature,
+			&sign.MessageBody{
+				PlainMsg:  string(message),
+				Timestamp: timestamp,
+				Salt:      int64(salt),
+				LastSeen:  []sign.PackedSignature{},
+			},
+			nil,
+			&sign.FilterMask{Type: 0},
+			&chatType,
+		)
 	})
 	return nil
 }
