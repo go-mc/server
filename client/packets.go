@@ -53,12 +53,12 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 		pk.Boolean(false), // Is Hardcore
 		pk.Byte(p.Gamemode),
 		pk.Byte(-1),
-		pk.Array([]pk.String{
-			pk.String(w.Name()),
+		pk.Array([]pk.Identifier{
+			pk.Identifier(w.Name()),
 		}),
 		pk.NBT(world.NetworkCodec),
 		pk.Identifier("minecraft:overworld"),
-		pk.String(w.Name()),
+		pk.Identifier(w.Name()),
 		pk.Long(binary.BigEndian.Uint64(hashedSeed[:8])),
 		pk.VarInt(0),              // Max players (ignored by client)
 		pk.VarInt(p.ViewDistance), // View Distance
@@ -71,26 +71,39 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 	)
 }
 
-func (c *Client) SendServerData(motd *chat.Message, favIcon string, previewsChat, enforceSecureProfile bool) {
+func (c *Client) SendServerData(motd *chat.Message, favIcon string, enforceSecureProfile bool) {
 	c.sendPacket(
 		packetid.ClientboundServerData,
-		pk.Boolean(motd != nil), pk.Opt{
-			Has:   motd != nil,
-			Field: motd,
+		pk.OptionEncoder[*chat.Message]{
+			Has: motd != nil,
+			Val: motd,
 		},
-		pk.Boolean(favIcon != ""), pk.Opt{
-			Has:   favIcon != "",
-			Field: pk.String(favIcon),
+		pk.Option[pk.String, *pk.String]{
+			Has: favIcon != "",
+			Val: pk.String(favIcon),
 		},
-		pk.Boolean(previewsChat),
 		pk.Boolean(enforceSecureProfile),
 	)
 }
 
+// playerInfoUpdate Enums
+const (
+	playerInfoAddPlayer = iota
+	playerInfoInitializeChat
+	playerInfoUpdateGameMode
+	playerInfoUpdateListed
+	playerInfoUpdateLatency
+	playerInfoUpdateDisplayName
+	playerInfoEnumGuard
+)
+
 func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
+	enumSet := pk.NewFixedBitSet(playerInfoEnumGuard)
+	enumSet.Set(playerInfoAddPlayer, true)
+
 	var buffer bytes.Buffer
 	_, err := pk.Tuple{
-		pk.VarInt(0),            // Action
+		enumSet,                 // Actions
 		pk.VarInt(len(players)), // Number of players
 	}.WriteTo(&buffer)
 	if err != nil {
@@ -100,6 +113,7 @@ func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
 	// Player
 	for _, p := range players {
 		_, err := pk.Tuple{
+			pk.UUID(p.UUID),
 			pk.String(p.Name),
 			pk.Array(p.Properties),
 		}.WriteTo(&buffer)
@@ -114,9 +128,11 @@ func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
 }
 
 func (c *Client) SendPlayerInfoUpdateLatency(player *world.Player, latency time.Duration) {
+	enumSet := pk.NewFixedBitSet(playerInfoEnumGuard)
+	enumSet.Set(playerInfoUpdateLatency, true)
 	c.sendPacket(
 		packetid.ClientboundPlayerInfoUpdate,
-		pk.VarInt(2),
+		enumSet,
 		pk.VarInt(1),
 		pk.UUID(player.UUID),
 		pk.VarInt(latency.Milliseconds()),
@@ -204,15 +220,15 @@ func (c *Client) SendRotateHead(eid int32, yaw int8) {
 	)
 }
 
-func (c *Client) SendTeleportEntity(eid int32, pos [3]float64, rot [2]float32, onGround bool) {
+func (c *Client) SendTeleportEntity(eid int32, pos [3]float64, rot [2]int8, onGround bool) {
 	c.sendPacket(
 		packetid.ClientboundTeleportEntity,
 		pk.VarInt(eid),
 		pk.Double(pos[0]),
 		pk.Double(pos[1]),
 		pk.Double(pos[2]),
-		pk.Float(rot[0]),
-		pk.Float(rot[1]),
+		pk.Angle(rot[0]),
+		pk.Angle(rot[1]),
 		pk.Boolean(onGround),
 	)
 }
@@ -300,6 +316,6 @@ func (c *Client) ViewRotateHead(id int32, yaw int8) {
 	c.SendRotateHead(id, yaw)
 }
 
-func (c *Client) ViewTeleportEntity(id int32, pos [3]float64, rot [2]float32, onGround bool) {
+func (c *Client) ViewTeleportEntity(id int32, pos [3]float64, rot [2]int8, onGround bool) {
 	c.SendTeleportEntity(id, pos, rot, onGround)
 }

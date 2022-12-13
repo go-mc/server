@@ -25,5 +25,5 @@ type EntityViewer interface {
 	ViewMoveEntityPosAndRot(id int32, delta [3]int16, rot [2]int8, onGround bool)
 	ViewMoveEntityRot(id int32, rot [2]int8, onGround bool)
 	ViewRotateHead(id int32, yaw int8)
-	ViewTeleportEntity(id int32, pos [3]float64, rot [2]float32, onGround bool)
+	ViewTeleportEntity(id int32, pos [3]float64, rot [2]int8, onGround bool)
 }

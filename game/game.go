@@ -107,7 +107,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
 
 	c.SendLogin(g.overworld, p)
-	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.PreviewsChat, g.config.EnforceSecureProfile)
+	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.EnforceSecureProfile)
 	c.SendPlayerPosition(p.Position, p.Rotation, true)
 	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)
