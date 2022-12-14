@@ -1,8 +1,6 @@
 package game
 
 import (
-	"time"
-
 	"github.com/Tnze/go-mc/data/packetid"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
@@ -24,19 +22,23 @@ func (pl *playerList) addPlayer(c *client.Client, p *world.Player) {
 	c.AddHandler(packetid.ServerboundKeepAlive, keepAliveHandler{pl.keepAlive})
 	players := make([]*world.Player, 0, pl.pingList.Len()+1)
 	players = append(players, p)
+	addPlayerAction := client.NewPlayerInfoAction(
+		client.PlayerInfoAddPlayer,
+		client.PlayerInfoUpdateListed,
+	)
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		cc := c.(*client.Client)
-		cc.SendPlayerInfoAdd([]*world.Player{p})
+		cc.SendPlayerInfoUpdate(addPlayerAction, []*world.Player{p})
 		players = append(players, cc.GetPlayer())
 	})
-	c.SendPlayerInfoAdd(players)
+	c.SendPlayerInfoUpdate(addPlayerAction, players)
 }
 
-func (pl *playerList) updateLatency(c *client.Client, latency time.Duration) {
+func (pl *playerList) updateLatency(c *client.Client) {
 	p := c.GetPlayer()
+	updateLatencyAction := client.NewPlayerInfoAction(client.PlayerInfoUpdateLatency)
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
-		cc := c.(*client.Client)
-		cc.SendPlayerInfoUpdateLatency(p, latency)
+		c.(*client.Client).SendPlayerInfoUpdate(updateLatencyAction, []*world.Player{p})
 	})
 }
 

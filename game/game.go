@@ -37,8 +37,9 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, server
 	pl := playerList{pingList: pingList, keepAlive: keepAlive}
 	keepAlive.AddPlayerDelayUpdateHandler(func(c server.KeepAliveClient, latency time.Duration) {
 		cc := c.(*client.Client)
-		cc.GetPlayer().SetLatency(latency)
-		pl.updateLatency(cc, latency)
+		p := cc.GetPlayer()
+		p.SetLatency(latency)
+		pl.updateLatency(cc)
 	})
 	go keepAlive.Run(context.TODO())
 	playerProvider := world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata"))

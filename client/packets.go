@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"sync/atomic"
-	"time"
 	"unsafe"
 
 	"github.com/Tnze/go-mc/chat"
@@ -86,57 +85,56 @@ func (c *Client) SendServerData(motd *chat.Message, favIcon string, enforceSecur
 	)
 }
 
-// playerInfoUpdate Enums
+// Actions of [SendPlayerInfoUpdate]
 const (
-	playerInfoAddPlayer = iota
-	playerInfoInitializeChat
-	playerInfoUpdateGameMode
-	playerInfoUpdateListed
-	playerInfoUpdateLatency
-	playerInfoUpdateDisplayName
-	playerInfoEnumGuard
+	PlayerInfoAddPlayer = iota
+	PlayerInfoInitializeChat
+	PlayerInfoUpdateGameMode
+	PlayerInfoUpdateListed
+	PlayerInfoUpdateLatency
+	PlayerInfoUpdateDisplayName
+	// PlayerInfoEnumGuard is the number of the enums
+	PlayerInfoEnumGuard
 )
 
-func (c *Client) SendPlayerInfoAdd(players []*world.Player) {
-	enumSet := pk.NewFixedBitSet(playerInfoEnumGuard)
-	enumSet.Set(playerInfoAddPlayer, true)
-
-	var buffer bytes.Buffer
-	_, err := pk.Tuple{
-		enumSet,                 // Actions
-		pk.VarInt(len(players)), // Number of players
-	}.WriteTo(&buffer)
-	if err != nil {
-		c.log.Panic("Marshal packet error", zap.Error(err))
+func NewPlayerInfoAction(actions ...int) pk.FixedBitSet {
+	enumSet := pk.NewFixedBitSet(PlayerInfoEnumGuard)
+	for _, action := range actions {
+		enumSet.Set(action, true)
 	}
+	return enumSet
+}
 
-	// Player
-	for _, p := range players {
-		_, err := pk.Tuple{
-			pk.UUID(p.UUID),
-			pk.String(p.Name),
-			pk.Array(p.Properties),
-		}.WriteTo(&buffer)
-		if err != nil {
-			c.log.Panic("Marshal packet error", zap.Error(err))
+func (c *Client) SendPlayerInfoUpdate(actions pk.FixedBitSet, players []*world.Player) {
+	var buf bytes.Buffer
+	_, _ = actions.WriteTo(&buf)
+	_, _ = pk.VarInt(len(players)).WriteTo(&buf)
+	for _, player := range players {
+		_, _ = pk.UUID(player.UUID).WriteTo(&buf)
+		if actions.Get(PlayerInfoAddPlayer) {
+			_, _ = pk.String(player.Name).WriteTo(&buf)
+			_, _ = pk.Array(player.Properties).WriteTo(&buf)
+		}
+		if actions.Get(PlayerInfoInitializeChat) {
+			panic("not yet support InitializeChat")
+		}
+		if actions.Get(PlayerInfoUpdateGameMode) {
+			_, _ = pk.VarInt(player.Gamemode).WriteTo(&buf)
+		}
+		if actions.Get(PlayerInfoUpdateListed) {
+			_, _ = pk.Boolean(true).WriteTo(&buf)
+		}
+		if actions.Get(PlayerInfoUpdateLatency) {
+			_, _ = pk.VarInt(player.Latency().Milliseconds()).WriteTo(&buf)
+		}
+		if actions.Get(PlayerInfoUpdateDisplayName) {
+			panic("not yet support DisplayName")
 		}
 	}
 	c.queue.Push(pk.Packet{
 		ID:   int32(packetid.ClientboundPlayerInfoUpdate),
-		Data: buffer.Bytes(),
+		Data: buf.Bytes(),
 	})
-}
-
-func (c *Client) SendPlayerInfoUpdateLatency(player *world.Player, latency time.Duration) {
-	enumSet := pk.NewFixedBitSet(playerInfoEnumGuard)
-	enumSet.Set(playerInfoUpdateLatency, true)
-	c.sendPacket(
-		packetid.ClientboundPlayerInfoUpdate,
-		enumSet,
-		pk.VarInt(1),
-		pk.UUID(player.UUID),
-		pk.VarInt(latency.Milliseconds()),
-	)
 }
 
 func (c *Client) SendPlayerInfoRemove(players []*world.Player) {
