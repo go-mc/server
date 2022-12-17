@@ -4,11 +4,12 @@ import (
 	"errors"
 	"sync"
 
+	"go.uber.org/zap"
+	"golang.org/x/time/rate"
+
 	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/level/block"
 	"github.com/go-mc/server/world/internal/bvh"
-	"go.uber.org/zap"
-	"golang.org/x/time/rate"
 )
 
 type World struct {
@@ -23,6 +24,8 @@ type World struct {
 	players     map[Client]*Player
 
 	chunkProvider ChunkProvider
+	spawnPosition [3]int32
+	spawnAngle    float32
 
 	tickLock sync.Mutex
 }
@@ -38,13 +41,15 @@ type (
 	playerViewTree = bvh.Tree[float64, aabb3d, playerView]
 )
 
-func New(logger *zap.Logger, provider ChunkProvider) (w *World) {
+func New(logger *zap.Logger, provider ChunkProvider, spawnPosition [3]int32, spawnAngle float32) (w *World) {
 	w = &World{
 		log:           logger,
 		chunks:        make(map[[2]int32]*LoadedChunk),
 		loaders:       make(map[ChunkViewer]*loader),
 		players:       make(map[Client]*Player),
 		chunkProvider: provider,
+		spawnPosition: spawnPosition,
+		spawnAngle:    spawnAngle,
 	}
 	go w.tickLoop()
 	return
@@ -54,6 +59,10 @@ func (w *World) Name() string {
 	return "minecraft:overworld"
 }
 
+func (w *World) SpawnPositionAndAngle() ([3]int32, float32) {
+	return w.spawnPosition, w.spawnAngle
+}
+
 func (w *World) HashedSeed() [8]byte {
 	return [8]byte{}
 }
@@ -61,7 +70,7 @@ func (w *World) HashedSeed() [8]byte {
 func (w *World) AddPlayer(c Client, p *Player, limiter *rate.Limiter) {
 	w.tickLock.Lock()
 	defer w.tickLock.Unlock()
-	w.loaders[c] = NewLoader(p, limiter)
+	w.loaders[c] = newLoader(p, limiter)
 	w.players[c] = p
 	p.view = w.playerViews.Insert(p.getView(), playerView{c, p})
 }

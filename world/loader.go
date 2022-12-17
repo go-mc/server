@@ -18,11 +18,11 @@ type loader struct {
 }
 
 type loaderSource interface {
-	ChunkPosition() [2]int32
-	ChunkRadius() int32
+	chunkPosition() [2]int32
+	chunkRadius() int32
 }
 
-func NewLoader(source loaderSource, limiter *rate.Limiter) (l *loader) {
+func newLoader(source loaderSource, limiter *rate.Limiter) (l *loader) {
 	l = &loader{
 		loaderSource: source,
 		loaded:       make(map[[2]int32]struct{}),
@@ -36,8 +36,8 @@ func NewLoader(source loaderSource, limiter *rate.Limiter) (l *loader) {
 // The result is stored in l.loadQueue and the previous will be removed.
 func (l *loader) calcLoadingQueue() {
 	l.loadQueue = l.loadQueue[:0]
-	for _, v := range loadList[:radiusIdx[l.ChunkRadius()]] {
-		pos := l.ChunkPosition()
+	for _, v := range loadList[:radiusIdx[l.chunkRadius()]] {
+		pos := l.chunkPosition()
 		pos[0], pos[1] = pos[0]+v[0], pos[1]+v[1]
 		if _, ok := l.loaded[pos]; !ok {
 			l.loadQueue = append(l.loadQueue, pos)
@@ -50,9 +50,9 @@ func (l *loader) calcLoadingQueue() {
 func (l *loader) calcUnusedChunks() {
 	l.unloadQueue = l.unloadQueue[:0]
 	for chunk := range l.loaded {
-		player := l.ChunkPosition()
-		r := l.ChunkRadius()
-		if distance([2]int32{chunk[0] - player[0], chunk[1] - player[1]}) > float64(r) {
+		player := l.chunkPosition()
+		r := l.chunkRadius()
+		if distance2i([2]int32{chunk[0] - player[0], chunk[1] - player[1]}) > float64(r) {
 			l.unloadQueue = append(l.unloadQueue, chunk)
 		}
 	}
@@ -72,19 +72,19 @@ func init() {
 	for x := -maxR; x <= maxR; x++ {
 		for z := -maxR; z <= maxR; z++ {
 			pos := [2]int32{x, z}
-			if distance(pos) < float64(maxR) {
+			if distance2i(pos) < float64(maxR) {
 				loadList = append(loadList, pos)
 			}
 		}
 	}
 	sort.Slice(loadList, func(i, j int) bool {
-		return distance(loadList[i]) < distance(loadList[j])
+		return distance2i(loadList[i]) < distance2i(loadList[j])
 	})
 
 	// calculate radiusIdx
 	radiusIdx = make([]int, maxR+1)
 	for i, v := range loadList {
-		r := int32(math.Ceil(distance(v)))
+		r := int32(math.Ceil(distance2i(v)))
 		if r > maxR {
 			break
 		}
@@ -93,6 +93,6 @@ func init() {
 }
 
 // distance calculate the euclidean distance that a position to the origin point
-func distance(pos [2]int32) float64 {
+func distance2i(pos [2]int32) float64 {
 	return math.Sqrt(float64(pos[0]*pos[0]) + float64(pos[1]*pos[1]))
 }

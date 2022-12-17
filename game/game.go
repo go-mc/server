@@ -1,21 +1,24 @@
 package game
 
 import (
+	"compress/gzip"
 	"context"
 	"errors"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
+	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/server"
 	"github.com/Tnze/go-mc/server/auth"
 	"github.com/go-mc/server/client"
 	"github.com/go-mc/server/world"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 type Game struct {
@@ -32,18 +35,18 @@ type Game struct {
 }
 
 func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, serverInfo *server.PingInfo) *Game {
-	overworldProvider := world.NewProvider(filepath.Join(".", config.LevelName, "region"), config.ChunkLoadingLimiter.Limiter())
+	overworld, err := createWorld(log, filepath.Join(".", config.LevelName), &config)
+	if err != nil {
+		log.Fatal("cannot load overworld", zap.Error(err))
+	}
 	keepAlive := server.NewKeepAlive()
 	pl := playerList{pingList: pingList, keepAlive: keepAlive}
 	keepAlive.AddPlayerDelayUpdateHandler(func(c server.KeepAliveClient, latency time.Duration) {
-		cc := c.(*client.Client)
-		p := cc.GetPlayer()
-		p.SetLatency(latency)
-		pl.updateLatency(cc)
+		pl.updateLatency(c.(*client.Client), latency)
 	})
 	go keepAlive.Run(context.TODO())
 	playerProvider := world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata"))
-	overworld := world.New(log.Named("overworld"), overworldProvider)
+
 	registryCodec := world.NetworkCodec
 	return &Game{
 		log: log.Named("game"),
@@ -61,6 +64,28 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, server
 		},
 		playerList: &pl,
 	}
+}
+
+func createWorld(logger *zap.Logger, path string, config *Config) (*world.World, error) {
+	f, err := os.Open(filepath.Join(path, "level.dat"))
+	if err != nil {
+		return nil, err
+	}
+	r, err := gzip.NewReader(f)
+	if err != nil {
+		return nil, err
+	}
+	lv, err := save.ReadLevel(r)
+	if err != nil {
+		return nil, err
+	}
+	overworld := world.New(
+		logger.Named("overworld"),
+		world.NewProvider(filepath.Join(path, "region"), config.ChunkLoadingLimiter.Limiter()),
+		[3]int32{lv.Data.SpawnX, lv.Data.SpawnY, lv.Data.SpawnZ},
+		lv.Data.SpawnAngle,
+	)
+	return overworld, nil
 }
 
 // AcceptPlayer will be called in an independent goroutine when new player login
@@ -109,6 +134,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 
 	c.SendLogin(g.overworld, p)
 	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.EnforceSecureProfile)
+	c.SendSetDefaultSpawnPosition(g.overworld.SpawnPositionAndAngle())
 	c.SendPlayerPosition(p.Position, p.Rotation, true)
 	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)

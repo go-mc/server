@@ -1,13 +1,14 @@
 package client
 
 import (
+	"go.uber.org/zap"
+
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/net/queue"
 	"github.com/Tnze/go-mc/server"
 	"github.com/go-mc/server/world"
-	"go.uber.org/zap"
 )
 
 type Client struct {
@@ -16,6 +17,7 @@ type Client struct {
 	player   *world.Player
 	queue    server.PacketQueue
 	handlers []packetHandler
+	*world.Inputs
 }
 
 type packetHandler interface {
@@ -29,6 +31,7 @@ func New(log *zap.Logger, conn *net.Conn, player *world.Player) *Client {
 		player:   player,
 		queue:    queue.NewChannelQueue[pk.Packet](256),
 		handlers: defaultHandlers[:],
+		Inputs:   &player.Inputs,
 	}
 }
 

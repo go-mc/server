@@ -1,6 +1,8 @@
 package game
 
 import (
+	"time"
+
 	"github.com/Tnze/go-mc/data/packetid"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server"
@@ -34,9 +36,12 @@ func (pl *playerList) addPlayer(c *client.Client, p *world.Player) {
 	c.SendPlayerInfoUpdate(addPlayerAction, players)
 }
 
-func (pl *playerList) updateLatency(c *client.Client) {
-	p := c.GetPlayer()
+func (pl *playerList) updateLatency(c *client.Client, latency time.Duration) {
 	updateLatencyAction := client.NewPlayerInfoAction(client.PlayerInfoUpdateLatency)
+	p := c.GetPlayer()
+	p.Inputs.Lock()
+	p.Inputs.Latency = latency
+	p.Inputs.Unlock()
 	pl.pingList.Range(func(c server.PlayerListClient, _ server.PlayerSample) {
 		c.(*client.Client).SendPlayerInfoUpdate(updateLatencyAction, []*world.Player{p})
 	})

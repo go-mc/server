@@ -4,9 +4,10 @@ import (
 	"math"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/go-mc/server/world/internal/bvh"
-	"go.uber.org/zap"
 )
 
 func (w *World) tickLoop() {
@@ -52,6 +53,7 @@ LoadChunk:
 					break LoadChunk // We reach the global limit. skip
 				}
 			}
+			w.log.Debug("ViewChunkLoad", zap.Int32("x", pos[0]), zap.Int32("z", pos[1]), zap.Any("viewer", viewer))
 			loader.loaded[pos] = struct{}{}
 			lc := w.chunks[pos]
 			lc.AddViewer(viewer)
@@ -83,8 +85,19 @@ LoadChunk:
 
 func (w *World) subtickUpdatePlayers() {
 	for c, p := range w.players {
+		if !p.Inputs.TryLock() {
+			continue
+		}
+		inputs := &p.Inputs
 		// update the range of visual.
-		p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
+		if p.ViewDistance != int32(inputs.ViewDistance) {
+			p.ViewDistance = int32(inputs.ViewDistance)
+			p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
+		}
+		w.log.Debug("Handling player input",
+			zap.String("player", p.Name),
+			zap.Int32("view-distance", p.ViewDistance),
+		)
 		// delete entities that not in range from entities lists of each player.
 		for id, e := range p.EntitiesInView {
 			if !p.view.Box.WithIn(vec3d(e.Position)) {
@@ -93,21 +106,19 @@ func (w *World) subtickUpdatePlayers() {
 			}
 		}
 		if p.teleport != nil {
-			if p.acceptTeleportID.Load() == p.teleport.ID {
+			if inputs.TeleportID == p.teleport.ID {
 				p.pos0 = p.teleport.Position
 				p.rot0 = p.teleport.Rotation
 				p.teleport = nil
 			}
 		} else {
-			pos := p.nextPos.Load()
 			delta := [3]float64{
-				pos[0] - p.Position[0],
-				pos[1] - p.Position[1],
-				pos[2] - p.Position[2],
+				inputs.Position[0] - p.Position[0],
+				inputs.Position[1] - p.Position[1],
+				inputs.Position[2] - p.Position[2],
 			}
 			distance := math.Sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2])
 			if distance > 100 {
-				w.log.Info("Player move too quickly", zap.Float64("delta", distance))
 				// You moved too quickly :( (Hacking?)
 				teleportID := c.SendPlayerPosition(p.Position, p.Rotation, true)
 				p.teleport = &TeleportRequest{
@@ -115,15 +126,20 @@ func (w *World) subtickUpdatePlayers() {
 					Position: p.Position,
 					Rotation: p.Rotation,
 				}
-			} else if pos.IsValid() {
-				p.pos0 = pos
-				p.rot0 = p.nextRot.Load()
-				p.OnGround = OnGround(p.nextOnGround.Load())
+			} else if inputs.Position.IsValid() {
+				p.pos0 = inputs.Position
+				p.rot0 = inputs.Rotation
+				p.OnGround = inputs.OnGround
 			} else {
-				w.log.Info("Player move invalid", zap.Float64("x", pos[0]), zap.Float64("y", pos[1]), zap.Float64("z", pos[2]))
+				w.log.Info("Player move invalid",
+					zap.Float64("x", inputs.Position[0]),
+					zap.Float64("y", inputs.Position[1]),
+					zap.Float64("z", inputs.Position[2]),
+				)
 				c.SendDisconnect(chat.TranslateMsg("multiplayer.disconnect.invalid_player_movement"))
 			}
 		}
+		p.Inputs.Unlock()
 	}
 }
 

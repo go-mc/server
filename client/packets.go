@@ -6,14 +6,15 @@ import (
 	"sync/atomic"
 	"unsafe"
 
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/chat/sign"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/level"
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/go-mc/server/world"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 func (c *Client) sendPacket(id packetid.ClientboundPacketID, fields ...pk.FieldEncoder) {
@@ -125,7 +126,7 @@ func (c *Client) SendPlayerInfoUpdate(actions pk.FixedBitSet, players []*world.P
 			_, _ = pk.Boolean(true).WriteTo(&buf)
 		}
 		if actions.Get(PlayerInfoUpdateLatency) {
-			_, _ = pk.VarInt(player.Latency().Milliseconds()).WriteTo(&buf)
+			_, _ = pk.VarInt(player.Latency.Milliseconds()).WriteTo(&buf)
 		}
 		if actions.Get(PlayerInfoUpdateDisplayName) {
 			panic("not yet support DisplayName")
@@ -245,6 +246,15 @@ func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehi
 		pk.Byte(0), // Absolute
 		pk.VarInt(teleportID),
 		pk.Boolean(dismountVehicle),
+	)
+	return
+}
+
+func (c *Client) SendSetDefaultSpawnPosition(xyz [3]int32, angle float32) {
+	c.sendPacket(
+		packetid.ClientboundSetDefaultSpawnPosition,
+		pk.Position{X: int(xyz[0]), Y: int(xyz[1]), Z: int(xyz[2])},
+		pk.Float(angle),
 	)
 	return
 }
