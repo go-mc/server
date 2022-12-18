@@ -33,7 +33,7 @@ import (
 	"github.com/go-mc/server/world"
 )
 
-func (c *Client) sendPacket(id packetid.ClientboundPacketID, fields ...pk.FieldEncoder) {
+func (c *Client) SendPacket(id packetid.ClientboundPacketID, fields ...pk.FieldEncoder) {
 	var buffer bytes.Buffer
 
 	// Write the packet fields
@@ -51,19 +51,19 @@ func (c *Client) sendPacket(id packetid.ClientboundPacketID, fields ...pk.FieldE
 }
 
 func (c *Client) SendKeepAlive(id int64) {
-	c.sendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
+	c.SendPacket(packetid.ClientboundKeepAlive, pk.Long(id))
 }
 
 // SendDisconnect send ClientboundDisconnect packet to client.
 // Once the packet is sent, the connection will be closed.
 func (c *Client) SendDisconnect(reason chat.Message) {
 	c.log.Debug("Disconnect player", zap.String("reason", reason.ClearString()))
-	c.sendPacket(packetid.ClientboundDisconnect, reason)
+	c.SendPacket(packetid.ClientboundDisconnect, reason)
 }
 
 func (c *Client) SendLogin(w *world.World, p *world.Player) {
 	hashedSeed := w.HashedSeed()
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundLogin,
 		pk.Int(p.EntityID),
 		pk.Boolean(false), // Is Hardcore
@@ -88,7 +88,7 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 }
 
 func (c *Client) SendServerData(motd *chat.Message, favIcon string, enforceSecureProfile bool) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundServerData,
 		pk.OptionEncoder[*chat.Message]{
 			Has: motd != nil,
@@ -173,15 +173,15 @@ func (c *Client) SendPlayerInfoRemove(players []*world.Player) {
 }
 
 func (c *Client) SendLevelChunkWithLight(pos level.ChunkPos, chunk *level.Chunk) {
-	c.sendPacket(packetid.ClientboundLevelChunkWithLight, pos, chunk)
+	c.SendPacket(packetid.ClientboundLevelChunkWithLight, pos, chunk)
 }
 
 func (c *Client) SendForgetLevelChunk(pos level.ChunkPos) {
-	c.sendPacket(packetid.ClientboundForgetLevelChunk, pos)
+	c.SendPacket(packetid.ClientboundForgetLevelChunk, pos)
 }
 
 func (c *Client) SendAddPlayer(p *world.Player) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundAddPlayer,
 		pk.VarInt(p.EntityID),
 		pk.UUID(p.UUID),
@@ -194,7 +194,7 @@ func (c *Client) SendAddPlayer(p *world.Player) {
 }
 
 func (c *Client) SendMoveEntitiesPos(eid int32, delta [3]int16, onGround bool) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundMoveEntityPos,
 		pk.VarInt(eid),
 		pk.Short(delta[0]),
@@ -205,7 +205,7 @@ func (c *Client) SendMoveEntitiesPos(eid int32, delta [3]int16, onGround bool) {
 }
 
 func (c *Client) SendMoveEntitiesPosAndRot(eid int32, delta [3]int16, rot [2]int8, onGround bool) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundMoveEntityPosRot,
 		pk.VarInt(eid),
 		pk.Short(delta[0]),
@@ -218,7 +218,7 @@ func (c *Client) SendMoveEntitiesPosAndRot(eid int32, delta [3]int16, rot [2]int
 }
 
 func (c *Client) SendMoveEntitiesRot(eid int32, rot [2]int8, onGround bool) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundMoveEntityRot,
 		pk.VarInt(eid),
 		pk.Angle(rot[0]),
@@ -228,7 +228,7 @@ func (c *Client) SendMoveEntitiesRot(eid int32, rot [2]int8, onGround bool) {
 }
 
 func (c *Client) SendRotateHead(eid int32, yaw int8) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundRotateHead,
 		pk.VarInt(eid),
 		pk.Angle(yaw),
@@ -236,7 +236,7 @@ func (c *Client) SendRotateHead(eid int32, yaw int8) {
 }
 
 func (c *Client) SendTeleportEntity(eid int32, pos [3]float64, rot [2]int8, onGround bool) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundTeleportEntity,
 		pk.VarInt(eid),
 		pk.Double(pos[0]),
@@ -252,7 +252,7 @@ var teleportCounter atomic.Int32
 
 func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32) {
 	teleportID = teleportCounter.Add(1)
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundPlayerPosition,
 		pk.Double(pos[0]),
 		pk.Double(pos[1]),
@@ -267,7 +267,7 @@ func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehi
 }
 
 func (c *Client) SendSetDefaultSpawnPosition(xyz [3]int32, angle float32) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundSetDefaultSpawnPosition,
 		pk.Position{X: int(xyz[0]), Y: int(xyz[1]), Z: int(xyz[2])},
 		pk.Float(angle),
@@ -276,14 +276,14 @@ func (c *Client) SendSetDefaultSpawnPosition(xyz [3]int32, angle float32) {
 }
 
 func (c *Client) SendRemoveEntities(entityIDs []int32) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundRemoveEntities,
 		pk.Array(*(*[]pk.VarInt)(unsafe.Pointer(&entityIDs))),
 	)
 }
 
 func (c *Client) SendSystemChat(msg chat.Message, overlay bool) {
-	c.sendPacket(packetid.ClientboundSystemChat, msg, pk.Boolean(overlay))
+	c.SendPacket(packetid.ClientboundSystemChat, msg, pk.Boolean(overlay))
 }
 
 func (c *Client) SendPlayerChat(
@@ -295,7 +295,7 @@ func (c *Client) SendPlayerChat(
 	filter *sign.FilterMask,
 	chatType *chat.Type,
 ) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundPlayerChat,
 		pk.UUID(sender),
 		pk.VarInt(index),
@@ -311,7 +311,7 @@ func (c *Client) SendPlayerChat(
 }
 
 func (c *Client) SendSetChunkCacheCenter(chunkPos [2]int32) {
-	c.sendPacket(
+	c.SendPacket(
 		packetid.ClientboundSetChunkCacheCenter,
 		pk.VarInt(chunkPos[0]),
 		pk.VarInt(chunkPos[1]),

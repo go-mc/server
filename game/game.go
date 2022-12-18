@@ -30,6 +30,7 @@ import (
 	"github.com/Tnze/go-mc/chat"
 	"github.com/Tnze/go-mc/data/packetid"
 	"github.com/Tnze/go-mc/net"
+	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/server"
 	"github.com/Tnze/go-mc/server/auth"
@@ -159,6 +160,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 	c.SendPlayerPosition(p.Position, p.Rotation, true)
 	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)
+	c.SendPacket(packetid.ClientboundUpdateTags, pk.Array(defaultTags))
 
 	c.Start()
 }
