@@ -21,10 +21,9 @@ import (
 	"sync"
 	"time"
 
-	pk "github.com/Tnze/go-mc/net/packet"
-
 	"github.com/google/uuid"
 
+	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/server/auth"
 )
 

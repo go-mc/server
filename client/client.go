@@ -33,6 +33,7 @@ type Client struct {
 	player   *world.Player
 	queue    server.PacketQueue
 	handlers []packetHandler
+	// pointer to the Player.Input
 	*world.Inputs
 }
 

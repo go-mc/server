@@ -51,19 +51,21 @@ type Game struct {
 }
 
 func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, serverInfo *server.PingInfo) *Game {
+	// providers
 	overworld, err := createWorld(log, filepath.Join(".", config.LevelName), &config)
 	if err != nil {
 		log.Fatal("cannot load overworld", zap.Error(err))
 	}
+	playerProvider := world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata"))
+
+	// keepalive
 	keepAlive := server.NewKeepAlive()
 	pl := playerList{pingList: pingList, keepAlive: keepAlive}
 	keepAlive.AddPlayerDelayUpdateHandler(func(c server.KeepAliveClient, latency time.Duration) {
 		pl.updateLatency(c.(*client.Client), latency)
 	})
 	go keepAlive.Run(context.TODO())
-	playerProvider := world.NewPlayerProvider(filepath.Join(".", config.LevelName, "playerdata"))
 
-	registryCodec := world.NetworkCodec
 	return &Game{
 		log: log.Named("game"),
 
@@ -76,7 +78,7 @@ func NewGame(log *zap.Logger, config Config, pingList *server.PlayerList, server
 		globalChat: globalChat{
 			log:           log.Named("chat"),
 			players:       &pl,
-			chatTypeCodec: &registryCodec.ChatType,
+			chatTypeCodec: &world.NetworkCodec.ChatType,
 		},
 		playerList: &pl,
 	}
@@ -98,8 +100,11 @@ func createWorld(logger *zap.Logger, path string, config *Config) (*world.World,
 	overworld := world.New(
 		logger.Named("overworld"),
 		world.NewProvider(filepath.Join(path, "region"), config.ChunkLoadingLimiter.Limiter()),
-		[3]int32{lv.Data.SpawnX, lv.Data.SpawnY, lv.Data.SpawnZ},
-		lv.Data.SpawnAngle,
+		world.Config{
+			ViewDistance:  config.ViewDistance,
+			SpawnAngle:    lv.Data.SpawnAngle,
+			SpawnPosition: [3]int32{lv.Data.SpawnX, lv.Data.SpawnY, lv.Data.SpawnZ},
+		},
 	)
 	return overworld, nil
 }

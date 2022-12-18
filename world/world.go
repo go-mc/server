@@ -29,7 +29,8 @@ import (
 )
 
 type World struct {
-	log *zap.Logger
+	log    *zap.Logger
+	config Config
 
 	chunks  map[[2]int32]*LoadedChunk
 	loaders map[ChunkViewer]*loader
@@ -40,10 +41,14 @@ type World struct {
 	players     map[Client]*Player
 
 	chunkProvider ChunkProvider
-	spawnPosition [3]int32
-	spawnAngle    float32
 
 	tickLock sync.Mutex
+}
+
+type Config struct {
+	ViewDistance  int32
+	SpawnAngle    float32
+	SpawnPosition [3]int32
 }
 
 type playerView struct {
@@ -57,15 +62,14 @@ type (
 	playerViewTree = bvh.Tree[float64, aabb3d, playerView]
 )
 
-func New(logger *zap.Logger, provider ChunkProvider, spawnPosition [3]int32, spawnAngle float32) (w *World) {
+func New(logger *zap.Logger, provider ChunkProvider, config Config) (w *World) {
 	w = &World{
 		log:           logger,
+		config:        config,
 		chunks:        make(map[[2]int32]*LoadedChunk),
 		loaders:       make(map[ChunkViewer]*loader),
 		players:       make(map[Client]*Player),
 		chunkProvider: provider,
-		spawnPosition: spawnPosition,
-		spawnAngle:    spawnAngle,
 	}
 	go w.tickLoop()
 	return
@@ -76,7 +80,7 @@ func (w *World) Name() string {
 }
 
 func (w *World) SpawnPositionAndAngle() ([3]int32, float32) {
-	return w.spawnPosition, w.spawnAngle
+	return w.config.SpawnPosition, w.config.SpawnAngle
 }
 
 func (w *World) HashedSeed() [8]byte {

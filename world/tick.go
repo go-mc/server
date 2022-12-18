@@ -52,7 +52,6 @@ func (w *World) subtickChunkLoad() {
 		z := int32(p.Position[2]) >> 4
 		if newChunkPos := [3]int32{x, y, z}; newChunkPos != p.ChunkPos {
 			p.ChunkPos = newChunkPos
-			w.log.Debug("SendSetChunkCacheCenter", zap.Int32("x", x), zap.Int32("z", z))
 			c.SendSetChunkCacheCenter([2]int32{x, z})
 		}
 	}
@@ -69,7 +68,6 @@ LoadChunk:
 					break LoadChunk // We reach the global limit. skip
 				}
 			}
-			w.log.Debug("ViewChunkLoad", zap.Int32("x", pos[0]), zap.Int32("z", pos[1]), zap.Any("viewer", viewer))
 			loader.loaded[pos] = struct{}{}
 			lc := w.chunks[pos]
 			lc.AddViewer(viewer)
@@ -110,10 +108,6 @@ func (w *World) subtickUpdatePlayers() {
 			p.ViewDistance = int32(inputs.ViewDistance)
 			p.view = w.playerViews.Insert(p.getView(), w.playerViews.Delete(p.view))
 		}
-		w.log.Debug("Handling player input",
-			zap.String("player", p.Name),
-			zap.Int32("view-distance", p.ViewDistance),
-		)
 		// delete entities that not in range from entities lists of each player.
 		for id, e := range p.EntitiesInView {
 			if !p.view.Box.WithIn(vec3d(e.Position)) {

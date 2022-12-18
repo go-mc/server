@@ -24,6 +24,7 @@ import (
 
 type Config struct {
 	MaxPlayers                  int    `toml:"max-players"`
+	ViewDistance                int32  `toml:"view-distance"`
 	ListenAddress               string `toml:"listen-address"`
 	MessageOfTheDay             string `toml:"motd"`
 	NetworkCompressionThreshold int    `toml:"network-compression-threshold"`
