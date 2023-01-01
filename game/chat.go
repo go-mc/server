@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -109,7 +109,7 @@ func (g *globalChat) Handle(p pk.Packet, c *client.Client) error {
 			player.UUID,
 			0,
 			signature,
-			&sign.MessageBody{
+			&sign.PackedMessageBody{
 				PlainMsg:  string(message),
 				Timestamp: timestamp,
 				Salt:      int64(salt),

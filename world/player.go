@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import (
 	"github.com/google/uuid"
 
 	pk "github.com/Tnze/go-mc/net/packet"
-	"github.com/Tnze/go-mc/server/auth"
+	"github.com/Tnze/go-mc/yggdrasil/user"
 )
 
 func (i *ClientInfo) ReadFrom(r io.Reader) (n int64, err error) {
@@ -44,8 +44,8 @@ type Player struct {
 	Entity
 	Name       string
 	UUID       uuid.UUID
-	PubKey     *auth.PublicKey
-	Properties []auth.Property
+	PubKey     *user.PublicKey
+	Properties []user.Property
 	Latency    time.Duration
 
 	lastChatTimestamp time.Time

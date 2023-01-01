@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ import (
 	pk "github.com/Tnze/go-mc/net/packet"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/server"
-	"github.com/Tnze/go-mc/server/auth"
+	"github.com/Tnze/go-mc/yggdrasil/user"
 	"github.com/go-mc/server/client"
 	"github.com/go-mc/server/world"
 )
@@ -111,7 +111,7 @@ func createWorld(logger *zap.Logger, path string, config *Config) (*world.World,
 }
 
 // AcceptPlayer will be called in an independent goroutine when new player login
-func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.PublicKey, properties []auth.Property, protocol int32, conn *net.Conn) {
+func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *user.PublicKey, properties []user.Property, protocol int32, conn *net.Conn) {
 	logger := g.log.With(
 		zap.String("name", name),
 		zap.String("uuid", id.String()),
@@ -123,7 +123,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *auth.Publi
 		p = &world.Player{
 			Entity: world.Entity{
 				EntityID: world.NewEntityID(),
-				Position: [3]float64{48, 64, 35},
+				Position: [3]float64{48, 100, 35},
 				Rotation: [2]float32{},
 			},
 			Name:           name,

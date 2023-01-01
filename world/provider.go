@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import (
 	"github.com/Tnze/go-mc/level"
 	"github.com/Tnze/go-mc/save"
 	"github.com/Tnze/go-mc/save/region"
-	"github.com/Tnze/go-mc/server/auth"
+	"github.com/Tnze/go-mc/yggdrasil/user"
 )
 
 // ChunkProvider implements chunk storage
@@ -132,7 +132,7 @@ func NewPlayerProvider(dir string) PlayerProvider {
 	return PlayerProvider{dir: dir}
 }
 
-func (p *PlayerProvider) GetPlayer(name string, id uuid.UUID, pubKey *auth.PublicKey, properties []auth.Property) (player *Player, errRet error) {
+func (p *PlayerProvider) GetPlayer(name string, id uuid.UUID, pubKey *user.PublicKey, properties []user.Property) (player *Player, errRet error) {
 	f, err := os.Open(filepath.Join(p.dir, id.String()+".dat"))
 	if err != nil {
 		return nil, err

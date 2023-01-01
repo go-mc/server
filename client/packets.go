@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -290,7 +290,7 @@ func (c *Client) SendPlayerChat(
 	sender uuid.UUID,
 	index int32,
 	signature pk.Option[sign.Signature, *sign.Signature],
-	body *sign.MessageBody,
+	body *sign.PackedMessageBody,
 	unsignedContent *chat.Message,
 	filter *sign.FilterMask,
 	chatType *chat.Type,

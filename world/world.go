@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,20 +29,18 @@ import (
 )
 
 type World struct {
-	log    *zap.Logger
-	config Config
+	log           *zap.Logger
+	config        Config
+	chunkProvider ChunkProvider
 
-	chunks  map[[2]int32]*LoadedChunk
-	loaders map[ChunkViewer]*loader
+	chunks   map[[2]int32]*LoadedChunk
+	loaders  map[ChunkViewer]*loader
+	tickLock sync.Mutex
 
 	// playerViews is a BVH tree，storing the visual range collision boxes of each player.
 	// the data structure is used to determine quickly which players to send notify when entity moves.
 	playerViews playerViewTree
 	players     map[Client]*Player
-
-	chunkProvider ChunkProvider
-
-	tickLock sync.Mutex
 }
 
 type Config struct {
@@ -55,6 +53,7 @@ type playerView struct {
 	EntityViewer
 	*Player
 }
+
 type (
 	vec3d          = bvh.Vec3[float64]
 	aabb3d         = bvh.AABB[float64, vec3d]
@@ -173,11 +172,11 @@ type LoadedChunk struct {
 func (lc *LoadedChunk) AddViewer(v ChunkViewer) {
 	lc.Lock()
 	defer lc.Unlock()
-	//for _, v2 := range lc.viewers {
-	//	if v2 == v {
-	//		panic("append an exist viewer")
-	//	}
-	//}
+	for _, v2 := range lc.viewers {
+		if v2 == v {
+			panic("append an exist viewer")
+		}
+	}
 	lc.viewers = append(lc.viewers, v)
 }
 
