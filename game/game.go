@@ -144,23 +144,23 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *user.Publi
 	logger.Info("Player join", zap.Int32("eid", p.EntityID))
 	defer logger.Info("Player left")
 
+	c.SendLogin(g.overworld, p)
+	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.EnforceSecureProfile)
+
 	joinMsg := chat.TranslateMsg("multiplayer.player.joined", chat.Text(p.Name)).SetColor(chat.Yellow)
 	leftMsg := chat.TranslateMsg("multiplayer.player.left", chat.Text(p.Name)).SetColor(chat.Yellow)
 	g.globalChat.broadcastSystemChat(joinMsg, false)
 	defer g.globalChat.broadcastSystemChat(leftMsg, false)
+	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
 
 	g.playerList.addPlayer(c, p)
 	defer g.playerList.removePlayer(c)
 
-	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
-
-	c.SendLogin(g.overworld, p)
-	c.SendServerData(g.serverInfo.Description(), g.serverInfo.FavIcon(), g.config.EnforceSecureProfile)
-	c.SendSetDefaultSpawnPosition(g.overworld.SpawnPositionAndAngle())
-	c.SendPlayerPosition(p.Position, p.Rotation, true)
+	c.SendPlayerPosition(p.Position, p.Rotation)
 	g.overworld.AddPlayer(c, p, g.config.PlayerChunkLoadingLimiter.Limiter())
 	defer g.overworld.RemovePlayer(c, p)
 	c.SendPacket(packetid.ClientboundUpdateTags, pk.Array(defaultTags))
+	c.SendSetDefaultSpawnPosition(g.overworld.SpawnPositionAndAngle())
 
 	c.Start()
 }

@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -130,7 +130,7 @@ func (w *World) subtickUpdatePlayers() {
 			distance := math.Sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2])
 			if distance > 100 {
 				// You moved too quickly :( (Hacking?)
-				teleportID := c.SendPlayerPosition(p.Position, p.Rotation, true)
+				teleportID := c.SendPlayerPosition(p.Position, p.Rotation)
 				p.teleport = &TeleportRequest{
 					ID:       teleportID,
 					Position: p.Position,

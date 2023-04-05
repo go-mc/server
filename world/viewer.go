@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ type Client interface {
 	ChunkViewer
 	EntityViewer
 	SendDisconnect(reason chat.Message)
-	SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32)
+	SendPlayerPosition(pos [3]float64, rot [2]float32) (teleportID int32)
 	SendSetChunkCacheCenter(chunkPos [2]int32)
 }
 

@@ -90,10 +90,7 @@ func (c *Client) SendLogin(w *world.World, p *world.Player) {
 func (c *Client) SendServerData(motd *chat.Message, favIcon string, enforceSecureProfile bool) {
 	c.SendPacket(
 		packetid.ClientboundServerData,
-		pk.OptionEncoder[*chat.Message]{
-			Has: motd != nil,
-			Val: motd,
-		},
+		motd,
 		pk.Option[pk.String, *pk.String]{
 			Has: favIcon != "",
 			Val: pk.String(favIcon),
@@ -250,7 +247,7 @@ func (c *Client) SendTeleportEntity(eid int32, pos [3]float64, rot [2]int8, onGr
 
 var teleportCounter atomic.Int32
 
-func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehicle bool) (teleportID int32) {
+func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32) (teleportID int32) {
 	teleportID = teleportCounter.Add(1)
 	c.SendPacket(
 		packetid.ClientboundPlayerPosition,
@@ -261,7 +258,6 @@ func (c *Client) SendPlayerPosition(pos [3]float64, rot [2]float32, dismountVehi
 		pk.Float(rot[1]),
 		pk.Byte(0), // Absolute
 		pk.VarInt(teleportID),
-		pk.Boolean(dismountVehicle),
 	)
 	return
 }

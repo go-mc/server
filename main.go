@@ -1,5 +1,5 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,11 +40,15 @@ func main() {
 	} else {
 		logger = unwrap(zap.NewProduction())
 	}
-	defer logger.Sync()
+	defer func(logger *zap.Logger) {
+		if err := logger.Sync(); err != nil {
+			panic(err)
+		}
+	}(logger)
 
-	logger.Info("Program start")
+	logger.Info("Server start")
 	printBuildInfo(logger)
-	defer logger.Info("Program exit")
+	defer logger.Info("Server exit")
 
 	// load server config
 	config, err := readConfig()

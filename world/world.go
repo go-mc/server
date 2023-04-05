@@ -123,6 +123,7 @@ func (w *World) RemovePlayer(c Client, p *Player) {
 
 func (w *World) loadChunk(pos [2]int32) bool {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
+	logger.Debug("Loading chunk")
 	// logger.Debug("Load chunk")
 	c, err := w.chunkProvider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
@@ -146,6 +147,7 @@ func (w *World) loadChunk(pos [2]int32) bool {
 
 func (w *World) unloadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
+	logger.Debug("Unloading chunk")
 	// logger.Debug("Unload chunk")
 	c, ok := w.chunks[pos]
 	if !ok {
