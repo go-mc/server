@@ -2,17 +2,17 @@
 // Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// it under the terms of the GNU Affero General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// GNU Affero General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 package world
 
@@ -124,7 +124,6 @@ func (w *World) RemovePlayer(c Client, p *Player) {
 func (w *World) loadChunk(pos [2]int32) bool {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
 	logger.Debug("Loading chunk")
-	// logger.Debug("Load chunk")
 	c, err := w.chunkProvider.GetChunk(pos)
 	if errors.Is(err, errChunkNotExist) {
 		logger.Debug("Generate chunk")
@@ -148,7 +147,6 @@ func (w *World) loadChunk(pos [2]int32) bool {
 func (w *World) unloadChunk(pos [2]int32) {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
 	logger.Debug("Unloading chunk")
-	// logger.Debug("Unload chunk")
 	c, ok := w.chunks[pos]
 	if !ok {
 		logger.Panic("Unloading an non-exist chunk")

@@ -1,18 +1,18 @@
 // This file is part of go-mc/server project.
-// Copyright (C) 2022.  Tnze
+// Copyright (C) 2023.  Tnze
 //
 // This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// it under the terms of the GNU Affero General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// GNU Affero General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 package bvh
 
@@ -220,11 +220,11 @@ type (
 	}
 )
 
-func (h searchHeap[I, V]) Len() int            { return len(h) }
-func (h searchHeap[I, V]) Less(i, j int) bool  { return h[i].inheritedCost < h[j].inheritedCost }
-func (h searchHeap[I, V]) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
-func (h *searchHeap[I, V]) Push(x interface{}) { *h = append(*h, x.(searchItem[I, V])) }
-func (h *searchHeap[I, V]) Pop() interface{} {
+func (h searchHeap[I, V]) Len() int           { return len(h) }
+func (h searchHeap[I, V]) Less(i, j int) bool { return h[i].inheritedCost < h[j].inheritedCost }
+func (h searchHeap[I, V]) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *searchHeap[I, V]) Push(x any)        { *h = append(*h, x.(searchItem[I, V])) }
+func (h *searchHeap[I, V]) Pop() any {
 	old := *h
 	n := len(old)
 	x := old[n-1]
