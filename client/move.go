@@ -22,16 +22,7 @@ import (
 	pk "github.com/Tnze/go-mc/net/packet"
 )
 
-type (
-	clientAcceptTeleportation  struct{}
-	clientMovePlayerPos        struct{}
-	clientMovePlayerPosRot     struct{}
-	clientMovePlayerRot        struct{}
-	clientMovePlayerStatusOnly struct{}
-	clientMoveVehicle          struct{}
-)
-
-func (clientAcceptTeleportation) Handle(p pk.Packet, c *Client) error {
+func clientAcceptTeleportation(p pk.Packet, c *Client) error {
 	var TeleportID pk.VarInt
 	_, err := TeleportID.ReadFrom(bytes.NewReader(p.Data))
 	if err != nil {
@@ -43,7 +34,7 @@ func (clientAcceptTeleportation) Handle(p pk.Packet, c *Client) error {
 	return nil
 }
 
-func (clientMovePlayerPos) Handle(p pk.Packet, c *Client) error {
+func clientMovePlayerPos(p pk.Packet, c *Client) error {
 	var X, FeetY, Z pk.Double
 	var OnGround pk.Boolean
 	if err := p.Scan(&X, &FeetY, &Z, &OnGround); err != nil {
@@ -55,7 +46,7 @@ func (clientMovePlayerPos) Handle(p pk.Packet, c *Client) error {
 	return nil
 }
 
-func (clientMovePlayerPosRot) Handle(p pk.Packet, c *Client) error {
+func clientMovePlayerPosRot(p pk.Packet, c *Client) error {
 	var X, FeetY, Z pk.Double
 	var Yaw, Pitch pk.Float
 	var OnGround pk.Boolean
@@ -69,7 +60,7 @@ func (clientMovePlayerPosRot) Handle(p pk.Packet, c *Client) error {
 	return nil
 }
 
-func (clientMovePlayerRot) Handle(p pk.Packet, c *Client) error {
+func clientMovePlayerRot(p pk.Packet, c *Client) error {
 	var Yaw, Pitch pk.Float
 	var OnGround pk.Boolean
 	if err := p.Scan(&Yaw, &Pitch, &OnGround); err != nil {
@@ -81,7 +72,7 @@ func (clientMovePlayerRot) Handle(p pk.Packet, c *Client) error {
 	return nil
 }
 
-func (clientMovePlayerStatusOnly) Handle(p pk.Packet, c *Client) error {
+func clientMovePlayerStatusOnly(p pk.Packet, c *Client) error {
 	var OnGround pk.UnsignedByte
 	if err := p.Scan(&OnGround); err != nil {
 		return err
@@ -92,6 +83,6 @@ func (clientMovePlayerStatusOnly) Handle(p pk.Packet, c *Client) error {
 	return nil
 }
 
-func (clientMoveVehicle) Handle(_ pk.Packet, _ *Client) error {
+func clientMoveVehicle(_ pk.Packet, _ *Client) error {
 	return nil
 }

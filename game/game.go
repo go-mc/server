@@ -151,7 +151,7 @@ func (g *Game) AcceptPlayer(name string, id uuid.UUID, profilePubKey *user.Publi
 	leftMsg := chat.TranslateMsg("multiplayer.player.left", chat.Text(p.Name)).SetColor(chat.Yellow)
 	g.globalChat.broadcastSystemChat(joinMsg, false)
 	defer g.globalChat.broadcastSystemChat(leftMsg, false)
-	c.AddHandler(packetid.ServerboundChat, &g.globalChat)
+	c.AddHandler(packetid.ServerboundChat, g.globalChat.Handle)
 
 	g.playerList.addPlayer(c, p)
 	defer g.playerList.removePlayer(c)

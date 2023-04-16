@@ -32,14 +32,12 @@ type Client struct {
 	conn     *net.Conn
 	player   *world.Player
 	queue    server.PacketQueue
-	handlers []packetHandler
+	handlers []PacketHandler
 	// pointer to the Player.Input
 	*world.Inputs
 }
 
-type packetHandler interface {
-	Handle(p pk.Packet, c *Client) error
-}
+type PacketHandler func(p pk.Packet, c *Client) error
 
 func New(log *zap.Logger, conn *net.Conn, player *world.Player) *Client {
 	return &Client{
@@ -95,7 +93,7 @@ func (c *Client) startReceive(done func()) {
 			return
 		}
 		if handler := c.handlers[packet.ID]; handler != nil {
-			err = handler.Handle(packet, c)
+			err = handler(packet, c)
 			if err != nil {
 				c.log.Error("Handle packet error", zap.Int32("id", packet.ID), zap.Error(err))
 				return
@@ -104,17 +102,17 @@ func (c *Client) startReceive(done func()) {
 	}
 }
 
-func (c *Client) AddHandler(id packetid.ServerboundPacketID, handler packetHandler) {
+func (c *Client) AddHandler(id packetid.ServerboundPacketID, handler PacketHandler) {
 	c.handlers[id] = handler
 }
 func (c *Client) GetPlayer() *world.Player { return c.player }
 
-var defaultHandlers = [packetid.ServerboundPacketIDGuard]packetHandler{
-	packetid.ServerboundAcceptTeleportation:  clientAcceptTeleportation{},
-	packetid.ServerboundClientInformation:    clientInformation{},
-	packetid.ServerboundMovePlayerPos:        clientMovePlayerPos{},
-	packetid.ServerboundMovePlayerPosRot:     clientMovePlayerPosRot{},
-	packetid.ServerboundMovePlayerRot:        clientMovePlayerRot{},
-	packetid.ServerboundMovePlayerStatusOnly: clientMovePlayerStatusOnly{},
-	packetid.ServerboundMoveVehicle:          clientMoveVehicle{},
+var defaultHandlers = [packetid.ServerboundPacketIDGuard]PacketHandler{
+	packetid.ServerboundAcceptTeleportation:  clientAcceptTeleportation,
+	packetid.ServerboundClientInformation:    clientInformation,
+	packetid.ServerboundMovePlayerPos:        clientMovePlayerPos,
+	packetid.ServerboundMovePlayerPosRot:     clientMovePlayerPosRot,
+	packetid.ServerboundMovePlayerRot:        clientMovePlayerRot,
+	packetid.ServerboundMovePlayerStatusOnly: clientMovePlayerStatusOnly,
+	packetid.ServerboundMoveVehicle:          clientMoveVehicle,
 }

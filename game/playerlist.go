@@ -37,7 +37,7 @@ func (pl *playerList) addPlayer(c *client.Client, p *world.Player) {
 		ID:   p.UUID,
 	})
 	pl.keepAlive.ClientJoin(c)
-	c.AddHandler(packetid.ServerboundKeepAlive, keepAliveHandler{pl.keepAlive})
+	c.AddHandler(packetid.ServerboundKeepAlive, keepAliveHandler(pl.keepAlive))
 	players := make([]*world.Player, 0, pl.pingList.Len()+1)
 	players = append(players, p)
 	addPlayerAction := client.NewPlayerInfoAction(
@@ -72,13 +72,13 @@ func (pl *playerList) removePlayer(c *client.Client) {
 	})
 }
 
-type keepAliveHandler struct{ *server.KeepAlive }
-
-func (k keepAliveHandler) Handle(p pk.Packet, c *client.Client) error {
-	var req pk.Long
-	if err := p.Scan(&req); err != nil {
-		return err
+func keepAliveHandler(k *server.KeepAlive) client.PacketHandler {
+	return func(p pk.Packet, c *client.Client) error {
+		var req pk.Long
+		if err := p.Scan(&req); err != nil {
+			return err
+		}
+		k.ClientTick(c)
+		return nil
 	}
-	k.KeepAlive.ClientTick(c)
-	return nil
 }
