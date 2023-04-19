@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
+	github.com/Tnze/go-ecs v0.0.0-20230419142531-3cc1577876a8
 	github.com/Tnze/go-mc v1.19.4-0.20230409064048-fd4a4bdeb116
 	github.com/google/uuid v1.3.0
 	go.uber.org/zap v1.24.0
