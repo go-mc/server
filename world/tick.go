@@ -55,12 +55,12 @@ func (w *World) subtickChunkLoad() {
 			c.SendSetChunkCacheCenter([2]int32{x, z})
 		}
 	}
-	// because of the random traversal order of w.loaders,every loader has the same opportunity,so it's relatively fair.
+	// because of the random traversal order of w.loaders, every loader has the same opportunity, so it's relatively fair.
 LoadChunk:
 	for viewer, loader := range w.loaders {
 		loader.calcLoadingQueue()
 		for _, pos := range loader.loadQueue {
-			if !loader.limiter.Allow() { // We reach the player limit. skip
+			if !loader.limiter.Allow() { // We reach the player limit. Skip
 				break
 			}
 			if _, ok := w.chunks[pos]; !ok {
@@ -178,9 +178,9 @@ func (w *World) subtickUpdateEntities() {
 				if n.Value.Player == e {
 					return true // don't send the player self to the player
 				}
-				// check if current entity is in range of player visual. if so, moving data will be forwarded.
+				// check if the current entity is in range of player visual. if so, moving data will be forwarded.
 				if _, ok := n.Value.EntitiesInView[e.EntityID]; !ok {
-					// add the entity to the entities list of the player
+					// add the entity to the entity list of the player
 					n.Value.ViewAddPlayer(e)
 					n.Value.EntitiesInView[e.EntityID] = &e.Entity
 				}
@@ -213,7 +213,7 @@ func (w *World) subtickUpdateEntities() {
 				if n.Value.Player == e {
 					return true // not sending self movements to player self.
 				}
-				// check if current entity is in the player visual entities list. if so, moving data will be forwarded.
+				// check if the current entity is in the player visual entities list. if so, moving data will be forwarded.
 				if _, ok := n.Value.EntitiesInView[e.EntityID]; ok {
 					sendMove(n.Value.EntityViewer)
 				} else {

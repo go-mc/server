@@ -23,8 +23,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// loader take part in chunk loading，each loader contains a position 'pos' and a radius 'r'
-// chunks pointed by the position and the radius of loader will be load。
+// loader takes part in chunk loading，each loader contains a position 'pos' and a radius 'r'
+// chunks pointed by the position, and the radius of loader will be load。
 type loader struct {
 	loaderSource
 	loaded      map[[2]int32]struct{}
@@ -61,7 +61,7 @@ func (l *loader) calcLoadingQueue() {
 	}
 }
 
-// calcUnusedChunks calculate the chunks the loader want to remove.
+// calcUnusedChunks calculate the chunks the loader wants to remove.
 // Behaviour is same with calcLoadingQueue.
 func (l *loader) calcUnusedChunks() {
 	l.unloadQueue = l.unloadQueue[:0]
@@ -74,7 +74,7 @@ func (l *loader) calcUnusedChunks() {
 	}
 }
 
-// loadList is chunks in a certain distance of (0, 0), order by euclidean distance
+// loadList is chunks in a certain distance of (0, 0), order by Euclidean distance
 // the more forward the chunk is, the closer it to (0, 0)
 var loadList [][2]int32
 
@@ -108,7 +108,7 @@ func init() {
 	}
 }
 
-// distance calculate the euclidean distance that a position to the origin point
+// distance calculates the Euclidean distance that a position to the origin point
 func distance2i(pos [2]int32) float64 {
 	return math.Sqrt(float64(pos[0]*pos[0]) + float64(pos[1]*pos[1]))
 }
