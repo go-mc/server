@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
-github.com/Tnze/go-mc v1.19.4-0.20230409064048-fd4a4bdeb116 h1:NEO2Z5/933zm3sVWUYt7tFMslogkxlfK8Y03X5gTvZI=
-github.com/Tnze/go-mc v1.19.4-0.20230409064048-fd4a4bdeb116/go.mod h1:c1znJQglgqa1Jjs3Dr29woN/msguiJrlNtWXhKedh2U=
+github.com/Tnze/go-mc v1.19.4-0.20230422160805-5f06fa651019 h1:DPIP23tmLknSyXFyTD/4gaMhmwbkZHPnvkk85XoYNgM=
+github.com/Tnze/go-mc v1.19.4-0.20230422160805-5f06fa651019/go.mod h1:c1znJQglgqa1Jjs3Dr29woN/msguiJrlNtWXhKedh2U=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
