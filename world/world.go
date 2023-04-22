@@ -125,20 +125,22 @@ func (w *World) loadChunk(pos [2]int32) bool {
 	logger := w.log.With(zap.Int32("x", pos[0]), zap.Int32("z", pos[1]))
 	logger.Debug("Loading chunk")
 	c, err := w.chunkProvider.GetChunk(pos)
-	if errors.Is(err, errChunkNotExist) {
-		logger.Debug("Generate chunk")
-		// TODO: because there is no chunk generator，generate an empty chunk and mark it as generated
-		c = level.EmptyChunk(24)
-		stone := block.ToStateID[block.Stone{}]
-		for s := range c.Sections {
-			for i := 0; i < 16*16*16; i++ {
-				c.Sections[s].SetBlock(i, stone)
+	if err != nil {
+		if errors.Is(err, errChunkNotExist) {
+			logger.Debug("Generate chunk")
+			// TODO: because there is no chunk generator，generate an empty chunk and mark it as generated
+			c = level.EmptyChunk(24)
+			stone := block.ToStateID[block.Stone{}]
+			for s := range c.Sections {
+				for i := 0; i < 16*16*16; i++ {
+					c.Sections[s].SetBlock(i, stone)
+				}
 			}
+			c.Status = level.StatusFull
+		} else if !errors.Is(err, ErrReachRateLimit) {
+			logger.Error("GetChunk error", zap.Error(err))
+			return false
 		}
-		c.Status = level.StatusFull
-	} else if err != nil {
-		logger.Error("GetChunk error", zap.Error(err))
-		return false
 	}
 	w.chunks[pos] = &LoadedChunk{Chunk: c}
 	return true

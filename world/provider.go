@@ -43,9 +43,11 @@ func NewProvider(dir string, limiter *rate.Limiter) ChunkProvider {
 	return ChunkProvider{dir: dir, limiter: limiter}
 }
 
+var ErrReachRateLimit = errors.New("reach rate limit")
+
 func (p *ChunkProvider) GetChunk(pos [2]int32) (c *level.Chunk, errRet error) {
 	if !p.limiter.Allow() {
-		return nil, errors.New("reach time limit")
+		return nil, ErrReachRateLimit
 	}
 	r, err := p.getRegion(region.At(int(pos[0]), int(pos[1])))
 	if err != nil {
